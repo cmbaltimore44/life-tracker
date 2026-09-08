@@ -57,6 +57,7 @@ body {
   background: var(--bg);
   color: var(--text);
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   -webkit-user-select: none;
   user-select: none;
@@ -72,6 +73,7 @@ input, textarea, select, button {
 .app-shell {
   display: flex;
   height: 100vh;
+  height: 100dvh;
 }
 
 .sidebar {
@@ -1201,24 +1203,29 @@ input, textarea, select, button {
 
   .sidebar {
     width: 100%;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
     border-top: 1px solid var(--border);
     order: 2;
-    padding: 8px 10px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)) 8px;
   }
 
   .sidebar-brand { display: none; }
 
   .sidebar-nav {
     flex-direction: row;
-    flex: 1;
+    flex: none;
     justify-content: space-around;
   }
 
   .sidebar-footer {
-    margin-top: 0;
+    margin-top: 4px;
     flex-direction: row;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .sidebar-footer .btn, .sidebar-footer .icon-toggle-btn {
+    width: auto;
   }
 
   .content { order: 1; }
@@ -1261,12 +1268,12 @@ input, textarea, select, button {
   .toast-container {
     left: 12px;
     right: 12px;
-    bottom: 72px;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
     max-width: none;
   }
 
   .search-fab {
-    bottom: 72px;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
     right: 12px;
   }
 
