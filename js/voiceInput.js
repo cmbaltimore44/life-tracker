@@ -10,27 +10,39 @@ function setRecordingState(button, isRecording) {
   button.title = isRecording ? 'Stop dictation' : 'Dictate';
 }
 
+function resetState() {
+  if (activeButton) setRecordingState(activeButton, false);
+  recognition = null;
+  activeButton = null;
+}
+
 function startRecording(button, textarea) {
-  if (recognition) recognition.stop();
+  if (recognition) {
+    try {
+      recognition.stop();
+    } catch {
+      // already stopped
+    }
+    resetState();
+  }
 
   const rec = new SpeechRecognitionCtor();
   rec.lang = navigator.language || 'en-US';
   rec.continuous = true;
-  rec.interimResults = false;
+  rec.interimResults = true;
 
-  let baseValue = textarea.value;
+  const baseValue = textarea.value;
+  const needsLeadingSpace = baseValue && !/\s$/.test(baseValue);
 
   rec.onresult = (event) => {
     if (recognition !== rec) return;
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (!event.results[i].isFinal) continue;
-      const transcript = event.results[i][0].transcript.trim();
-      if (!transcript) continue;
-      const needsSpace = baseValue && !/\s$/.test(baseValue);
-      baseValue += (needsSpace ? ' ' : '') + transcript;
-      textarea.value = baseValue;
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    let transcript = '';
+    for (let i = 0; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
     }
+    transcript = transcript.trim();
+    textarea.value = baseValue + (needsLeadingSpace && transcript ? ' ' : '') + transcript;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
   rec.onerror = (event) => {
@@ -40,13 +52,12 @@ function startRecording(button, textarea) {
     } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
       showToast('Voice input stopped unexpectedly.', { type: 'error' });
     }
+    resetState();
   };
 
   rec.onend = () => {
     if (recognition !== rec) return;
-    setRecordingState(button, false);
-    recognition = null;
-    activeButton = null;
+    resetState();
   };
 
   recognition = rec;
@@ -56,7 +67,14 @@ function startRecording(button, textarea) {
 }
 
 export function stopVoiceInput() {
-  if (recognition) recognition.stop();
+  if (recognition) {
+    try {
+      recognition.stop();
+    } catch {
+      // already stopped
+    }
+  }
+  resetState();
 }
 
 export function initVoiceInput() {
