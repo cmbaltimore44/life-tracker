@@ -1244,6 +1244,10 @@ input, textarea, select, button {
     gap: 16px;
   }
 
+  .column {
+    flex: none;
+  }
+
   .card-list {
     flex: none;
     overflow-y: visible;
