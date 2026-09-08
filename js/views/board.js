@@ -2,6 +2,7 @@ import * as tasksApi from '../data/tasks.js';
 import * as categoriesApi from '../data/categories.js';
 import { getCategory as getCategoryFrom, dueStatus, formatDue } from '../taskDisplay.js';
 import { showError, showToast } from '../toast.js';
+import { stopVoiceInput } from '../voiceInput.js';
 
 const COLORS = [
   '#bf5433', '#c9463f', '#b8791a', '#2fa84f',
@@ -260,6 +261,7 @@ export function openTaskModal(taskId, defaultColumn) {
 function closeTaskModal() {
   el.taskModalOverlay.classList.remove('open');
   editingTaskId = null;
+  stopVoiceInput();
 }
 
 async function handleTaskSubmit(e) {

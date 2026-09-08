@@ -481,12 +481,42 @@ input, textarea, select, button {
 }
 
 .field span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.voice-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.voice-btn:hover { color: var(--accent); }
+
+.voice-btn.recording {
+  color: var(--danger);
+  animation: voice-pulse 1s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 .field input, .field select, .field textarea {

@@ -2,6 +2,7 @@ import * as booksApi from '../data/books.js';
 import * as quotesApi from '../data/quotes.js';
 import { hashSegments } from '../hash.js';
 import { showError } from '../toast.js';
+import { stopVoiceInput } from '../voiceInput.js';
 
 const STATUS_LABELS = { want_to_read: 'Want to Read', reading: 'Reading', finished: 'Finished', dnf: 'Did Not Finish' };
 
@@ -351,6 +352,7 @@ function openQuoteModal({ quote = null, context, bookId = null } = {}) {
 function closeQuoteModal() {
   el.quoteModalOverlay.classList.remove('open');
   editingQuoteId = null;
+  stopVoiceInput();
 }
 
 async function handleQuoteSubmit(e) {
