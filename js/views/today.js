@@ -204,14 +204,16 @@ export async function initToday() {
 
 export async function refreshToday() {
   try {
-    [tasks, categories, routines, completions, quote, books] = await Promise.all([
+    [tasks, categories, routines, completions, books] = await Promise.all([
       tasksApi.listTasks(),
       categoriesApi.listCategories(),
       routinesApi.listRoutines(),
       completionsApi.listCompletions(),
-      quotesApi.pickRandomQuote(),
       booksApi.listBooks(),
     ]);
+    // Only roll a new featured quote when there isn't one yet, so refocusing
+    // the tab (which re-triggers this refresh) doesn't swap it out under you.
+    if (!quote) quote = await quotesApi.pickRandomQuote();
   } catch (err) {
     showError(err);
     return;

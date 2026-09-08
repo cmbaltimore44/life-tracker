@@ -6,15 +6,23 @@ Live at <https://life-tracker-hq.vercel.app>.
 
 ## Features
 
-- **Board**: three columns (To Do, In Progress, Done), drag and drop between them; categories with colors; due dates with overdue/soon-due highlighting; priority levels, notes, search, and filtering.
-- **Routines**: a second tab for daily habits, grouped into Morning / Afternoon / Evening checklists, with streak tracking.
-- Light/dark mode toggle, styled in a warm cream/charcoal palette with an orange accent.
+- **Today**: your top 3 starred tasks, today's routines, and a quote widget, all on one dashboard.
+- **Board**: three columns (To Do, In Progress, Done) with drag-and-drop on desktop; on mobile the same tasks render as a single stacked, scrollable list (touch devices can't drag-and-drop), and every task has a Status dropdown as a non-drag way to move it between columns. Categories with colors, due dates with overdue/soon-due highlighting, priority levels, notes, search, and filtering.
+- **Routines**: daily habits grouped into Morning / Afternoon / Evening checklists, with streak tracking and drag-to-reorder.
+- **Projects**: a list of projects with status and target dates, each with its own notes and a checklist of sub-tasks.
+- **Library**: track books you're reading (status, format, dates, rating, cover image, notes) and collect highlights/quotes from them, plus standalone quotes — with a favorites filter.
+- **Global search**: press `Cmd`/`Ctrl`+`K` or tap the floating search button to jump straight to any task, project, book, quote, or routine.
+- **Voice-to-text**: a dictation button (Web Speech API) on notes and quote fields, handy on mobile.
+- **Toast notifications**: success/error/info toasts for background actions, plus a non-blocking confirmation toast (instead of the browser's native popup) before anything is deleted.
+- Light/dark mode toggle, styled in a warm cream-and-terracotta palette (dark mode: warm charcoal).
 - Sign in with a one-time email code (no password). Your data lives in Supabase and follows you between your computer and phone.
+- Mobile-aware layout: safe-area padding for notches/home indicators, a compact bottom nav bar, and a board list view (see above).
 
 ## One-time setup (Supabase)
 
 1. Create a free project at [supabase.com](https://supabase.com/dashboard).
-2. In the SQL Editor, run the schema in [`supabase/schema.sql`](supabase/schema.sql) — this creates the `categories`, `tasks`, `routines`, and `routine_completions` tables with Row Level Security so each signed-in user only ever sees their own rows.
+2. In the SQL Editor, run [`supabase/schema.sql`](supabase/schema.sql), then [`supabase/schema_002.sql`](supabase/schema_002.sql). Together they create the `categories`, `tasks`, `routines`, `routine_completions`, `projects`, `project_tasks`, `books`, and `quotes` tables, all with Row Level Security so each signed-in user only ever sees their own rows.
+   - `supabase/import_electron_data.sql` is a one-off migration script for importing data from the original Electron/localStorage version of this app — most people can ignore it.
 3. In Settings → API, copy your **Project URL** and **anon public key**.
 4. Paste them into `js/supabaseClient.js` (`SUPABASE_URL` / `SUPABASE_ANON_KEY`). The anon key is meant to be public — RLS is what actually protects the data, not the key.
 5. Email auth (with OTP codes) is on by default — nothing else to configure.
@@ -44,45 +52,36 @@ Visit the deployed URL from your phone's browser and sign in with the same email
 
 | Path | Purpose |
 |---|---|
-| `index.html` | Sidebar shell, auth screen, board view, routines view, modals |
-| `style.css` | Theme variables (light/dark), layout, and component styling |
-| `js/app.js` | Entry point: auth gate, hash-based router, focus/visibility refresh |
+| `index.html` | Sidebar shell, auth screen, all views (Today, Board, Routines, Projects, Library), global search overlay, and modals |
+| `style.css` | Theme variables (light/dark), layout, component styling, and mobile-specific responsive rules |
+| `js/app.js` | Entry point: auth gate, hash-based router, focus/visibility refresh, wires up search and voice input |
 | `js/supabaseClient.js` | Supabase client init — put your project URL/anon key here |
 | `js/auth.js` | Email OTP sign-in/out |
 | `js/theme.js` | Light/dark theme toggle |
 | `js/migrate.js` | One-time import of old localStorage data into Supabase |
-| `js/data/*.js` | CRUD calls to Supabase for tasks, categories, routines, completions |
-| `js/views/board.js` | Board rendering, task/category modals, drag-and-drop |
+| `js/hash.js` | Small helper for parsing the `#/a/b/c` hash route into segments |
+| `js/taskDisplay.js` | Shared pure display helpers (category lookup, due-date status) used by both Board and Today |
+| `js/toast.js` | Toast notifications (success/error/info) and the non-blocking delete-confirmation toast |
+| `js/search.js` | Global search modal: builds a search index, renders grouped results, keyboard navigation |
+| `js/voiceInput.js` | Wires mic buttons to the Web Speech API for dictating into notes/quote fields |
+| `js/data/*.js` | CRUD calls to Supabase for tasks, categories, routines, completions, projects, project tasks, books, quotes, and the global search index |
+| `js/views/today.js` | Today dashboard: starred tasks, routines widget, quote widget |
+| `js/views/board.js` | Board rendering (desktop columns / mobile list), task and category modals, drag-and-drop |
 | `js/views/routines.js` | Routines checklist rendering, streaks, drag-and-drop |
-| `supabase/schema.sql` | Database schema + Row Level Security policies |
+| `js/views/projects.js` | Projects list and detail panel, checklist items |
+| `js/views/library.js` | Books list/detail, highlights, and the standalone quotes tab |
+| `supabase/schema.sql`, `supabase/schema_002.sql` | Database schema + Row Level Security policies |
+| `supabase/import_electron_data.sql` | Optional one-off migration from the original Electron app's local data |
+| `scripts/generate-icon.py` | Regenerates `build/icon.png` / `build/icon.icns` from a Pillow-drawn design |
 | `build/icon.icns`, `build/icon.png` | App icon, reused as the favicon / home-screen icon |
 
 ## Changing the app icon
 
-`build/icon.icns` and `build/icon.png` are generated from `scripts/icon-source.html`, a plain HTML/CSS/SVG file. To tweak the design:
+`build/icon.png` and `build/icon.icns` are generated by `scripts/generate-icon.py`, a self-contained Python script (uses only [Pillow](https://pillow.readthedocs.io/) and NumPy — no Electron or browser needed). To tweak the design, edit the drawing code in that script (colors, gradient, or the shapes drawn), then regenerate:
 
-1. Edit `scripts/icon-source.html`.
-2. Re-render it to a 1024×1024 PNG (this pulls Electron on-demand via `npx`, since it's no longer an installed dependency):
-   ```bash
-   npx electron scripts/generate-icon.js
-   ```
-3. Rebuild the `.icns` and PNG from that master image:
-   ```bash
-   cd build
-   rm -rf icon.iconset
-   mkdir icon.iconset
-   sips -z 16 16 icon-source.png     --out icon.iconset/icon_16x16.png
-   sips -z 32 32 icon-source.png     --out icon.iconset/icon_16x16@2x.png
-   sips -z 32 32 icon-source.png     --out icon.iconset/icon_32x32.png
-   sips -z 64 64 icon-source.png     --out icon.iconset/icon_32x32@2x.png
-   sips -z 128 128 icon-source.png   --out icon.iconset/icon_128x128.png
-   sips -z 256 256 icon-source.png   --out icon.iconset/icon_128x128@2x.png
-   sips -z 256 256 icon-source.png   --out icon.iconset/icon_256x256.png
-   sips -z 512 512 icon-source.png   --out icon.iconset/icon_256x256@2x.png
-   sips -z 512 512 icon-source.png   --out icon.iconset/icon_512x512.png
-   cp icon-source.png icon.iconset/icon_512x512@2x.png
-   iconutil -c icns icon.iconset -o icon.icns
-   sips -s format png icon.icns --out icon.png && sips -z 512 512 icon.png --out icon.png
-   rm -rf icon.iconset icon-source.png
-   cd ..
-   ```
+```bash
+pip install pillow numpy   # if not already installed
+python3 scripts/generate-icon.py
+```
+
+This writes `build/icon-source.png` (1024×1024 master), `build/icon.png` (512×512, used as the favicon/manifest icon), and `build/icon.icns` (macOS multi-resolution icon, built via the system `iconutil` if available).
