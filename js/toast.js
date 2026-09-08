@@ -52,6 +52,53 @@ export function showToast(message, { type = 'info', duration = 4500 } = {}) {
   return dismiss;
 }
 
+export function showConfirmToast(message, onConfirm, { confirmLabel = 'Delete', cancelLabel = 'Cancel', duration = 8000 } = {}) {
+  const host = ensureContainer();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-confirm';
+
+  const text = document.createElement('span');
+  text.className = 'toast-message';
+  text.textContent = message;
+  toast.appendChild(text);
+
+  const actions = document.createElement('div');
+  actions.className = 'toast-confirm-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'toast-confirm-btn';
+  cancelBtn.textContent = cancelLabel;
+  actions.appendChild(cancelBtn);
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'toast-confirm-btn toast-confirm-danger';
+  confirmBtn.textContent = confirmLabel;
+  actions.appendChild(confirmBtn);
+
+  toast.appendChild(actions);
+
+  let dismissed = false;
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    clearTimeout(timer);
+    toast.classList.remove('toast-visible');
+    setTimeout(() => toast.remove(), 200);
+  };
+  cancelBtn.addEventListener('click', dismiss);
+  confirmBtn.addEventListener('click', () => {
+    dismiss();
+    onConfirm();
+  });
+
+  host.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('toast-visible'));
+  const timer = setTimeout(dismiss, duration);
+}
+
 export function showError(err) {
   console.error(err);
   showToast(err?.message || 'Something went wrong talking to the server.', {

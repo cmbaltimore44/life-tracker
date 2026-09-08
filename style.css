@@ -1361,6 +1361,38 @@ input, textarea, select, button {
 .toast-success { border-left-color: var(--success); }
 .toast-info { border-left-color: var(--accent); }
 
+.toast.toast-confirm {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  border-left-color: var(--danger);
+}
+
+.toast-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.toast-confirm-btn {
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.toast-confirm-btn:hover { background: var(--hover-bg); }
+
+.toast-confirm-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+.toast-confirm-danger:hover { background: var(--danger-hover); }
+
 .toast-icon {
   flex: none;
   display: flex;

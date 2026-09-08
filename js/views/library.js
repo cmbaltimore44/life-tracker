@@ -1,7 +1,7 @@
 import * as booksApi from '../data/books.js';
 import * as quotesApi from '../data/quotes.js';
 import { hashSegments } from '../hash.js';
-import { showError, showToast } from '../toast.js';
+import { showError, showToast, showConfirmToast } from '../toast.js';
 import { stopVoiceInput } from '../voiceInput.js';
 
 const STATUS_LABELS = { want_to_read: 'Want to Read', reading: 'Reading', finished: 'Finished', dnf: 'Did Not Finish' };
@@ -184,17 +184,18 @@ async function handleSaveBook() {
   }
 }
 
-async function handleDeleteBook() {
+function handleDeleteBook() {
   if (!currentBookId) return;
-  if (!confirm('Delete this book and all its highlights? This cannot be undone.')) return;
-  try {
-    await booksApi.deleteBook(currentBookId);
-    books = books.filter((b) => b.id !== currentBookId);
-    location.hash = '#/library';
-    showToast('Book deleted.', { type: 'success' });
-  } catch (err) {
-    showError(err);
-  }
+  showConfirmToast('Delete this book and all its highlights? This cannot be undone.', async () => {
+    try {
+      await booksApi.deleteBook(currentBookId);
+      books = books.filter((b) => b.id !== currentBookId);
+      location.hash = '#/library';
+      showToast('Book deleted.', { type: 'success' });
+    } catch (err) {
+      showError(err);
+    }
+  });
 }
 
 // ---------- quotes (shared between book highlights + standalone browser) ----------
@@ -238,16 +239,17 @@ function renderQuoteRow(quote, context) {
   removeBtn.type = 'button';
   removeBtn.className = 'routine-remove';
   removeBtn.textContent = '×';
-  removeBtn.addEventListener('click', async (e) => {
+  removeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!confirm('Delete this quote?')) return;
-    try {
-      await quotesApi.deleteQuote(quote.id);
-      await afterQuoteMutation();
-      showToast('Quote deleted.', { type: 'success' });
-    } catch (err) {
-      showError(err);
-    }
+    showConfirmToast('Delete this quote?', async () => {
+      try {
+        await quotesApi.deleteQuote(quote.id);
+        await afterQuoteMutation();
+        showToast('Quote deleted.', { type: 'success' });
+      } catch (err) {
+        showError(err);
+      }
+    });
   });
   actions.appendChild(removeBtn);
 
@@ -385,17 +387,18 @@ async function handleQuoteSubmit(e) {
   }
 }
 
-async function handleQuoteDelete() {
+function handleQuoteDelete() {
   if (!editingQuoteId) return;
-  if (!confirm('Delete this quote?')) return;
-  try {
-    await quotesApi.deleteQuote(editingQuoteId);
-    await afterQuoteMutation();
-    closeQuoteModal();
-    showToast('Quote deleted.', { type: 'success' });
-  } catch (err) {
-    showError(err);
-  }
+  showConfirmToast('Delete this quote?', async () => {
+    try {
+      await quotesApi.deleteQuote(editingQuoteId);
+      await afterQuoteMutation();
+      closeQuoteModal();
+      showToast('Quote deleted.', { type: 'success' });
+    } catch (err) {
+      showError(err);
+    }
+  });
 }
 
 // ---------- routing ----------
