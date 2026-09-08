@@ -1,7 +1,7 @@
 import * as booksApi from '../data/books.js';
 import * as quotesApi from '../data/quotes.js';
 import { hashSegments } from '../hash.js';
-import { showError } from '../toast.js';
+import { showError, showToast } from '../toast.js';
 import { stopVoiceInput } from '../voiceInput.js';
 
 const STATUS_LABELS = { want_to_read: 'Want to Read', reading: 'Reading', finished: 'Finished', dnf: 'Did Not Finish' };
@@ -191,6 +191,7 @@ async function handleDeleteBook() {
     await booksApi.deleteBook(currentBookId);
     books = books.filter((b) => b.id !== currentBookId);
     location.hash = '#/library';
+    showToast('Book deleted.', { type: 'success' });
   } catch (err) {
     showError(err);
   }
@@ -243,6 +244,7 @@ function renderQuoteRow(quote, context) {
     try {
       await quotesApi.deleteQuote(quote.id);
       await afterQuoteMutation();
+      showToast('Quote deleted.', { type: 'success' });
     } catch (err) {
       showError(err);
     }
@@ -390,6 +392,7 @@ async function handleQuoteDelete() {
     await quotesApi.deleteQuote(editingQuoteId);
     await afterQuoteMutation();
     closeQuoteModal();
+    showToast('Quote deleted.', { type: 'success' });
   } catch (err) {
     showError(err);
   }

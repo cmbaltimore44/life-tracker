@@ -1,6 +1,6 @@
 import * as routinesApi from '../data/routines.js';
 import * as completionsApi from '../data/completions.js';
-import { showError } from '../toast.js';
+import { showError, showToast } from '../toast.js';
 
 const GROUPS = ['morning', 'afternoon', 'evening'];
 
@@ -110,6 +110,7 @@ async function removeRoutine(id) {
     routines = routines.filter((r) => r.id !== id);
     completions.delete(id);
     renderAll();
+    showToast('Routine deleted.', { type: 'success' });
   } catch (err) {
     showError(err);
   }

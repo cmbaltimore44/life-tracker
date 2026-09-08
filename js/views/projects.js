@@ -1,7 +1,7 @@
 import * as projectsApi from '../data/projects.js';
 import * as projectTasksApi from '../data/projectTasks.js';
 import { hashSegments } from '../hash.js';
-import { showError } from '../toast.js';
+import { showError, showToast } from '../toast.js';
 
 const STATUS_LABELS = { not_started: 'Not Started', in_progress: 'In Progress', done: 'Done' };
 
@@ -103,6 +103,7 @@ function renderChecklist() {
         await projectTasksApi.deleteProjectTask(item.id);
         checklist = checklist.filter((c) => c.id !== item.id);
         renderChecklist();
+        showToast('Checklist item deleted.', { type: 'success' });
       } catch (err) {
         showError(err);
       }
@@ -156,6 +157,7 @@ async function handleDelete() {
     await projectsApi.deleteProject(currentProjectId);
     projects = projects.filter((p) => p.id !== currentProjectId);
     location.hash = '#/projects';
+    showToast('Project deleted.', { type: 'success' });
   } catch (err) {
     showError(err);
   }

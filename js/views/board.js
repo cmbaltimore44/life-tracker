@@ -301,6 +301,7 @@ async function handleTaskDelete() {
     tasks = tasks.filter((t) => t.id !== editingTaskId);
     renderBoard();
     closeTaskModal();
+    showToast('Task deleted.', { type: 'success' });
   } catch (err) {
     showError(err);
   }
@@ -398,6 +399,7 @@ function renderCategoryManagerList() {
         renderCategoryFilterOptions();
         renderTaskCategoryOptions();
         renderBoard();
+        showToast('Category deleted.', { type: 'success' });
       } catch (err) {
         showError(err);
       }
