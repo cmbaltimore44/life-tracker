@@ -1,5 +1,6 @@
 import * as tasksApi from '../data/tasks.js';
 import * as categoriesApi from '../data/categories.js';
+import { getCategory as getCategoryFrom, dueStatus, formatDue } from '../taskDisplay.js';
 
 const COLORS = [
   '#bf5433', '#c9463f', '#b8791a', '#2fa84f',
@@ -68,23 +69,7 @@ function cacheElements() {
 // ---------- helpers ----------
 
 function getCategory(categoryId) {
-  return categories.find((c) => c.id === categoryId) || null;
-}
-
-function dueStatus(task) {
-  if (!task.due_date || task.status === 'done') return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(task.due_date + 'T00:00:00');
-  const diffDays = Math.round((due - today) / 86400000);
-  if (diffDays < 0) return 'overdue';
-  if (diffDays <= 1) return 'soon';
-  return null;
-}
-
-function formatDue(dateStr) {
-  const due = new Date(dateStr + 'T00:00:00');
-  return due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return getCategoryFrom(categories, categoryId);
 }
 
 function showError(err) {
@@ -247,6 +232,12 @@ function openTaskModal(taskId, defaultColumn) {
 
   if (editingTaskId) {
     const task = tasks.find((t) => t.id === editingTaskId);
+    if (!task) {
+      // Card is stale (e.g. deleted from another device since the last refresh).
+      editingTaskId = null;
+      renderBoard();
+      return;
+    }
     el.taskModalTitle.textContent = 'Edit Task';
     el.taskId.value = task.id;
     el.taskTitle.value = task.title;

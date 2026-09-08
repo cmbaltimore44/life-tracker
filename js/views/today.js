@@ -3,6 +3,8 @@ import * as categoriesApi from '../data/categories.js';
 import * as routinesApi from '../data/routines.js';
 import * as completionsApi from '../data/completions.js';
 import * as quotesApi from '../data/quotes.js';
+import * as booksApi from '../data/books.js';
+import { getCategory as getCategoryFrom, dueStatus, formatDue } from '../taskDisplay.js';
 
 const TIME_OF_DAY_LABELS = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
 
@@ -11,6 +13,7 @@ let categories = [];
 let routines = [];
 let completions = new Map();
 let quote = null;
+let books = [];
 
 const el = {};
 
@@ -29,23 +32,7 @@ function showError(err) {
 }
 
 function getCategory(categoryId) {
-  return categories.find((c) => c.id === categoryId) || null;
-}
-
-function dueStatus(task) {
-  if (!task.due_date || task.status === 'done') return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(task.due_date + 'T00:00:00');
-  const diffDays = Math.round((due - today) / 86400000);
-  if (diffDays < 0) return 'overdue';
-  if (diffDays <= 1) return 'soon';
-  return null;
-}
-
-function formatDue(dateStr) {
-  const due = new Date(dateStr + 'T00:00:00');
-  return due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return getCategoryFrom(categories, categoryId);
 }
 
 function renderDate() {
@@ -185,6 +172,7 @@ async function toggleCompletion(routine, checked) {
     renderRoutinesWidget();
   } catch (err) {
     showError(err);
+    renderRoutinesWidget();
   }
 }
 
@@ -203,10 +191,11 @@ function renderQuote() {
   text.textContent = `“${quote.quote_text}”`;
   el.quote.appendChild(text);
 
-  if (quote.attribution) {
+  const formattedAttribution = quotesApi.formatAttribution(quote, books);
+  if (formattedAttribution) {
     const attribution = document.createElement('div');
     attribution.className = 'quote-attribution';
-    attribution.textContent = quote.attribution;
+    attribution.textContent = formattedAttribution;
     el.quote.appendChild(attribution);
   }
 }
@@ -219,12 +208,13 @@ export async function initToday() {
 
 export async function refreshToday() {
   try {
-    [tasks, categories, routines, completions, quote] = await Promise.all([
+    [tasks, categories, routines, completions, quote, books] = await Promise.all([
       tasksApi.listTasks(),
       categoriesApi.listCategories(),
       routinesApi.listRoutines(),
       completionsApi.listCompletions(),
       quotesApi.pickRandomQuote(),
+      booksApi.listBooks(),
     ]);
   } catch (err) {
     showError(err);

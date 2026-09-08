@@ -12,6 +12,7 @@ let currentBookId = null;
 let editingQuoteId = null;
 let quoteContext = 'standalone'; // 'book' | 'standalone'
 let quoteLockedBookId = null;
+let favoritesOnly = false;
 
 const el = {};
 
@@ -44,6 +45,7 @@ function cacheElements() {
     quoteCount: document.getElementById('quote-count'),
     newQuoteBtn: document.getElementById('new-quote-btn'),
     quotesList: document.getElementById('quotes-list'),
+    favoritesFilter: document.getElementById('quotes-favorites-filter'),
 
     tabLinks: document.querySelectorAll('.tab-link'),
 
@@ -213,7 +215,7 @@ function renderQuoteRow(quote, context) {
 
   const attribution = document.createElement('span');
   attribution.className = 'quote-attribution';
-  attribution.textContent = quote.attribution || '';
+  attribution.textContent = quotesApi.formatAttribution(quote, books);
   footer.appendChild(attribution);
 
   const actions = document.createElement('div');
@@ -273,14 +275,19 @@ function renderHighlights() {
 function renderQuotesList() {
   el.quotesList.innerHTML = '';
   el.quoteCount.textContent = allQuotes.length ? `${allQuotes.length} quote${allQuotes.length === 1 ? '' : 's'}` : '';
-  if (allQuotes.length === 0) {
+
+  const visible = favoritesOnly ? allQuotes.filter((q) => q.is_favorite) : allQuotes;
+
+  if (visible.length === 0) {
     const hint = document.createElement('div');
     hint.className = 'empty-hint';
-    hint.textContent = 'No quotes yet — add one from a book or from anywhere else.';
+    hint.textContent = favoritesOnly
+      ? 'No favorite quotes yet — star one to see it here.'
+      : 'No quotes yet — add one from a book or from anywhere else.';
     el.quotesList.appendChild(hint);
     return;
   }
-  allQuotes.forEach((q) => el.quotesList.appendChild(renderQuoteRow(q, 'standalone')));
+  visible.forEach((q) => el.quotesList.appendChild(renderQuoteRow(q, 'standalone')));
 }
 
 async function afterQuoteMutation() {
@@ -305,11 +312,6 @@ function populateBookSelect(selectedId) {
   el.quoteBook.value = selectedId || '';
 }
 
-function bookAttributionPrefix(bookId) {
-  const book = books.find((b) => b.id === bookId);
-  return book ? `${book.title} - ` : '';
-}
-
 function openQuoteModal({ quote = null, context, bookId = null } = {}) {
   editingQuoteId = quote ? quote.id : null;
   quoteContext = context;
@@ -321,19 +323,14 @@ function openQuoteModal({ quote = null, context, bookId = null } = {}) {
 
   el.quoteText.value = quote ? quote.quote_text : '';
 
-  const rawAttribution = quote ? quote.attribution || '' : '';
   if (context === 'book') {
-    const prefix = bookAttributionPrefix(quoteLockedBookId);
     el.quoteAttributionLabel.textContent = 'Page / location';
     el.quoteAttribution.placeholder = 'e.g. 177';
-    el.quoteAttribution.value = prefix && rawAttribution.startsWith(prefix)
-      ? rawAttribution.slice(prefix.length)
-      : rawAttribution;
   } else {
     el.quoteAttributionLabel.textContent = 'Attribution / location';
     el.quoteAttribution.placeholder = 'e.g. Location 177, or — Author Name';
-    el.quoteAttribution.value = rawAttribution;
   }
+  el.quoteAttribution.value = quote ? quote.attribution || '' : '';
 
   el.quoteFavorite.checked = quote ? !!quote.is_favorite : false;
   el.quoteDeleteBtn.hidden = !quote;
@@ -352,10 +349,7 @@ async function handleQuoteSubmit(e) {
   if (!text) return;
 
   const book_id = quoteContext === 'book' ? quoteLockedBookId : el.quoteBook.value || null;
-  const rawAttribution = el.quoteAttribution.value.trim();
-  const attribution = quoteContext === 'book' && rawAttribution
-    ? bookAttributionPrefix(quoteLockedBookId) + rawAttribution
-    : rawAttribution || null;
+  const attribution = el.quoteAttribution.value.trim() || null;
 
   const fields = {
     book_id,
@@ -411,6 +405,7 @@ function renderRoute() {
     openBookDetail(id);
   } else {
     currentBookId = null;
+    if (!sub) renderBooksList();
   }
   if (sub === 'quotes') {
     quotesApi
@@ -434,6 +429,11 @@ export async function initLibrary(uid) {
   el.deleteBookBtn.addEventListener('click', handleDeleteBook);
   el.coverUrl.addEventListener('input', () => {
     el.cover.src = el.coverUrl.value.trim();
+  });
+
+  el.favoritesFilter.addEventListener('change', () => {
+    favoritesOnly = el.favoritesFilter.checked;
+    renderQuotesList();
   });
 
   el.addHighlightBtn.addEventListener('click', () => {

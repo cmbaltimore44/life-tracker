@@ -204,6 +204,7 @@ function renderRoute() {
     openDetail(id);
   } else {
     currentProjectId = null;
+    renderList();
   }
 }
 

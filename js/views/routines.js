@@ -102,6 +102,9 @@ async function toggleCompletion(routine, checked) {
     renderGroup(routine.time_of_day);
   } catch (err) {
     showError(err);
+    // The browser already flipped the checkbox on click; re-render from the
+    // unchanged in-memory state so the UI doesn't silently disagree with the server.
+    renderGroup(routine.time_of_day);
   }
 }
 

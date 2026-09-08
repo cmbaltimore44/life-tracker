@@ -51,3 +51,14 @@ export async function pickRandomQuote() {
   if (!data.length) return null;
   return data[Math.floor(Math.random() * data.length)];
 }
+
+// Composes the display attribution from the book's *current* title rather
+// than baking a title snapshot into the stored value, so renaming a book
+// can never desync it from quotes that reference it.
+export function formatAttribution(quote, books) {
+  const raw = quote.attribution || '';
+  if (!quote.book_id) return raw;
+  const book = books.find((b) => b.id === quote.book_id);
+  if (!book) return raw;
+  return raw ? `${book.title} - ${raw}` : book.title;
+}

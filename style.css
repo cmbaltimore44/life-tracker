@@ -1121,6 +1121,18 @@ input, textarea, select, button {
   align-items: center;
   gap: 8px;
 }
+
+.favorites-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.favorites-filter input { cursor: pointer; }
 .checkbox-field input { width: auto; }
 .checkbox-field span {
   font-family: var(--font-sans);

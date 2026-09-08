@@ -24,14 +24,6 @@ export async function deleteRoutine(id) {
   if (error) throw error;
 }
 
-export async function moveRoutine(id, time_of_day, sort_order) {
-  const { error } = await supabase
-    .from('routines')
-    .update({ time_of_day, sort_order })
-    .eq('id', id);
-  if (error) throw error;
-}
-
 export async function reorderGroup(orderedIds, time_of_day) {
   await Promise.all(
     orderedIds.map((id, index) =>
