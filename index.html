@@ -2,52 +2,357 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
-<title>Task Kanban</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co" />
+<meta name="theme-color" content="#bf5433" />
+<title>Life Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600&family=Inter:wght@100..900&family=IBM+Plex+Mono:wght@500;600&display=swap" />
 <link rel="stylesheet" href="style.css" />
+<link rel="icon" href="build/icon.png" />
+<link rel="apple-touch-icon" href="build/icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-title">
-      <h1>Tasks</h1>
-      <span class="subtitle" id="task-count"></span>
+
+  <!-- Auth gate -->
+  <div class="auth-screen" id="auth-screen">
+    <div class="auth-card">
+      <div id="auth-step-email">
+        <h1>Sign in</h1>
+        <p>We'll email you a 6-digit code — no password needed.</p>
+        <form id="auth-email-form">
+          <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="email" />
+          <div class="auth-error" id="auth-email-error"></div>
+          <button type="submit" class="btn btn-primary">Send code</button>
+        </form>
+      </div>
+      <div id="auth-step-code" hidden>
+        <h1>Enter code</h1>
+        <p id="auth-code-subtitle">Check your email for the code.</p>
+        <form id="auth-code-form">
+          <input type="text" id="auth-code" placeholder="123456" inputmode="numeric" autocomplete="one-time-code" required />
+          <div class="auth-error" id="auth-code-error"></div>
+          <button type="submit" class="btn btn-primary">Verify</button>
+        </form>
+        <button type="button" class="auth-link" id="auth-back-btn">Use a different email</button>
+      </div>
     </div>
-    <div class="topbar-controls">
-      <input type="search" id="search-input" placeholder="Search tasks…" />
-      <select id="category-filter">
-        <option value="">All categories</option>
-      </select>
-      <button id="manage-categories-btn" class="btn btn-ghost">Categories</button>
-      <button id="new-task-btn" class="btn btn-primary">+ New Task</button>
-      <button id="theme-toggle-btn" class="icon-toggle-btn" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="app-shell" id="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-brand">Life Tracker</div>
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-view="today">Today</button>
+        <button class="nav-item" data-view="board">Board</button>
+        <button class="nav-item" data-view="routines">Routines</button>
+        <button class="nav-item" data-view="projects">Projects</button>
+        <button class="nav-item" data-view="library">Library</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="theme-toggle-btn" class="icon-toggle-btn" title="Toggle dark mode">🌙</button>
+        <button id="sign-out-btn" class="btn btn-ghost">Sign out</button>
+      </div>
+    </aside>
+
+    <div class="content">
+      <!-- Today view -->
+      <section class="view" id="view-today">
+        <header class="topbar">
+          <div class="topbar-title">
+            <h1>Today</h1>
+            <span class="subtitle" id="today-date"></span>
+          </div>
+        </header>
+
+        <div class="today-grid">
+          <div class="today-main">
+            <div class="routine-group-header"><h2>Top 3 for Today</h2></div>
+            <div class="card-list" id="today-starred-list"></div>
+
+            <div class="quote-widget" id="today-quote"></div>
+          </div>
+
+          <aside class="today-side" id="today-routines-widget">
+            <div class="routine-group-header"><h2>Routines</h2></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Board view -->
+      <section class="view" id="view-board" hidden>
+        <header class="topbar">
+          <div class="topbar-title">
+            <h1>Tasks</h1>
+            <span class="subtitle" id="task-count"></span>
+          </div>
+          <div class="topbar-controls">
+            <input type="search" id="search-input" placeholder="Search tasks…" />
+            <select id="category-filter">
+              <option value="">All categories</option>
+            </select>
+            <button id="manage-categories-btn" class="btn btn-ghost">Categories</button>
+            <button id="new-task-btn" class="btn btn-primary">+ New Task</button>
+          </div>
+        </header>
+
+        <main class="board" id="board">
+          <section class="column" data-column="todo">
+            <div class="column-header">
+              <h2>To Do</h2>
+              <span class="column-count" id="count-todo">0</span>
+            </div>
+            <div class="card-list" data-column="todo" id="list-todo"></div>
+          </section>
+
+          <section class="column" data-column="doing">
+            <div class="column-header">
+              <h2>In Progress</h2>
+              <span class="column-count" id="count-doing">0</span>
+            </div>
+            <div class="card-list" data-column="doing" id="list-doing"></div>
+          </section>
+
+          <section class="column" data-column="done">
+            <div class="column-header">
+              <h2>Done</h2>
+              <span class="column-count" id="count-done">0</span>
+            </div>
+            <div class="card-list" data-column="done" id="list-done"></div>
+          </section>
+        </main>
+      </section>
+
+      <!-- Routines view -->
+      <section class="view" id="view-routines" hidden>
+        <header class="topbar">
+          <div class="topbar-title">
+            <h1>Routines</h1>
+            <span class="subtitle" id="routine-count"></span>
+          </div>
+        </header>
+
+        <div class="routine-groups" id="routine-groups">
+          <div class="routine-group" data-tod="morning">
+            <div class="routine-group-header"><h2>Morning</h2></div>
+            <ul class="routine-list" data-tod="morning" id="list-morning"></ul>
+            <form class="routine-add-form" data-tod="morning">
+              <input type="text" placeholder="Add a morning routine…" required />
+              <button type="submit" class="btn btn-ghost">Add</button>
+            </form>
+          </div>
+
+          <div class="routine-group" data-tod="afternoon">
+            <div class="routine-group-header"><h2>Afternoon</h2></div>
+            <ul class="routine-list" data-tod="afternoon" id="list-afternoon"></ul>
+            <form class="routine-add-form" data-tod="afternoon">
+              <input type="text" placeholder="Add an afternoon routine…" required />
+              <button type="submit" class="btn btn-ghost">Add</button>
+            </form>
+          </div>
+
+          <div class="routine-group" data-tod="evening">
+            <div class="routine-group-header"><h2>Evening</h2></div>
+            <ul class="routine-list" data-tod="evening" id="list-evening"></ul>
+            <form class="routine-add-form" data-tod="evening">
+              <input type="text" placeholder="Add an evening routine…" required />
+              <button type="submit" class="btn btn-ghost">Add</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Projects view -->
+      <section class="view" id="view-projects" hidden>
+        <div id="projects-list-panel">
+          <header class="topbar">
+            <div class="topbar-title">
+              <h1>Projects</h1>
+              <span class="subtitle" id="project-count"></span>
+            </div>
+            <div class="topbar-controls">
+              <button id="new-project-btn" class="btn btn-primary">+ New Project</button>
+            </div>
+          </header>
+          <div class="flat-list" id="projects-list"></div>
+        </div>
+
+        <div id="projects-detail-panel" hidden>
+          <header class="topbar">
+            <a href="#/projects" class="back-link">&larr; Back to Projects</a>
+          </header>
+          <div class="detail-body">
+            <label class="field">
+              <span>Name</span>
+              <input type="text" id="project-name" />
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>Status</span>
+                <select id="project-status">
+                  <option value="not_started">Not Started</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="done">Done</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Target date</span>
+                <input type="date" id="project-target-date" />
+              </label>
+            </div>
+            <label class="field">
+              <span>Notes</span>
+              <textarea id="project-notes" rows="3"></textarea>
+            </label>
+
+            <button type="button" id="save-project-btn" class="btn btn-primary">Save</button>
+
+            <div class="checklist-header">
+              <span class="meta-label">Checklist</span>
+            </div>
+            <ul class="routine-list" id="project-checklist"></ul>
+            <form class="routine-add-form" id="project-checklist-form">
+              <input type="text" placeholder="Add a checklist item…" required />
+              <button type="submit" class="btn btn-ghost">Add</button>
+            </form>
+
+            <div class="danger-zone">
+              <span class="meta-label">Danger Zone</span>
+              <button id="delete-project-btn" class="btn btn-danger">Delete project…</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Library view -->
+      <section class="view" id="view-library" hidden>
+        <div id="library-books-panel">
+          <header class="topbar">
+            <div class="topbar-title">
+              <h1>Library</h1>
+              <span class="subtitle" id="book-count"></span>
+            </div>
+            <div class="topbar-controls">
+              <div class="library-tabs">
+                <a href="#/library" class="tab-link" data-tab="books">Books</a>
+                <a href="#/library/quotes" class="tab-link" data-tab="quotes">Quotes</a>
+              </div>
+              <button id="new-book-btn" class="btn btn-primary">+ New Book</button>
+            </div>
+          </header>
+          <div class="flat-list" id="books-list"></div>
+        </div>
+
+        <div id="library-book-detail-panel" hidden>
+          <header class="topbar">
+            <a href="#/library" class="back-link">&larr; Back to Library</a>
+          </header>
+          <div class="detail-scroll">
+          <div class="book-detail-layout">
+            <img class="book-cover-thumb large" id="book-detail-cover" alt="" />
+            <div class="book-detail-fields">
+              <label class="field">
+                <span>Title (required)</span>
+                <input type="text" id="book-title" />
+              </label>
+              <label class="field">
+                <span>Author</span>
+                <input type="text" id="book-author" />
+              </label>
+              <label class="field">
+                <span>Cover image URL</span>
+                <input type="text" id="book-cover-url" />
+              </label>
+              <div class="field-row">
+                <label class="field">
+                  <span>Status</span>
+                  <select id="book-status">
+                    <option value="want_to_read">Want to Read</option>
+                    <option value="reading">Reading</option>
+                    <option value="finished">Finished</option>
+                    <option value="dnf">Did Not Finish</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Format</span>
+                  <select id="book-format">
+                    <option value="none">(none)</option>
+                    <option value="physical">Physical</option>
+                    <option value="ebook">Ebook</option>
+                    <option value="audiobook">Audiobook</option>
+                  </select>
+                </label>
+              </div>
+              <div class="field-row">
+                <label class="field">
+                  <span>Started</span>
+                  <input type="date" id="book-started" />
+                </label>
+                <label class="field">
+                  <span>Finished</span>
+                  <input type="date" id="book-finished" />
+                </label>
+              </div>
+              <label class="field">
+                <span>Rating (1-5, blank for none)</span>
+                <select id="book-rating">
+                  <option value="">(no rating)</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>ISBN</span>
+                <input type="text" id="book-isbn" placeholder="optional" />
+              </label>
+              <label class="field">
+                <span>My summary / notes</span>
+                <textarea id="book-notes" rows="3"></textarea>
+              </label>
+
+              <button type="button" id="save-book-btn" class="btn btn-primary">Save</button>
+
+              <div class="danger-zone">
+                <span class="meta-label">Danger Zone</span>
+                <button id="delete-book-btn" class="btn btn-danger">Delete book…</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="checklist-header">
+              <span class="meta-label">Highlights</span>
+              <button id="add-highlight-btn" class="btn btn-ghost">+ Add Highlight</button>
+            </div>
+            <div class="quote-list" id="book-highlights-list"></div>
+          </div>
+          </div>
+        </div>
+
+        <div id="library-quotes-panel" hidden>
+          <header class="topbar">
+            <div class="topbar-title">
+              <h1>Quotes</h1>
+              <span class="subtitle" id="quote-count"></span>
+            </div>
+            <div class="topbar-controls">
+              <div class="library-tabs">
+                <a href="#/library" class="tab-link" data-tab="books">Books</a>
+                <a href="#/library/quotes" class="tab-link active" data-tab="quotes">Quotes</a>
+              </div>
+              <button id="new-quote-btn" class="btn btn-primary">+ New Quote</button>
+            </div>
+          </header>
+          <div class="quote-list" id="quotes-list"></div>
+        </div>
+      </section>
     </div>
-  </header>
-
-  <main class="board" id="board">
-    <section class="column" data-column="todo">
-      <div class="column-header">
-        <h2>To Do</h2>
-        <span class="column-count" id="count-todo">0</span>
-      </div>
-      <div class="card-list" data-column="todo" id="list-todo"></div>
-    </section>
-
-    <section class="column" data-column="doing">
-      <div class="column-header">
-        <h2>In Progress</h2>
-        <span class="column-count" id="count-doing">0</span>
-      </div>
-      <div class="card-list" data-column="doing" id="list-doing"></div>
-    </section>
-
-    <section class="column" data-column="done">
-      <div class="column-header">
-        <h2>Done</h2>
-        <span class="column-count" id="count-done">0</span>
-      </div>
-      <div class="card-list" data-column="done" id="list-done"></div>
-    </section>
-  </main>
+  </div>
 
   <!-- Task modal -->
   <div class="modal-overlay" id="task-modal-overlay">
@@ -115,13 +420,56 @@
         <input type="text" id="category-name" placeholder="New category name" required />
         <div class="color-swatches">
           <div id="color-swatches" class="color-swatches-presets"></div>
-          <input type="color" id="custom-color-input" class="custom-color-option" title="Custom color" value="#3b6ef6" />
+          <input type="color" id="custom-color-input" class="custom-color-option" title="Custom color" value="#bf5433" />
         </div>
         <button type="submit" class="btn btn-primary">Add Category</button>
       </form>
     </div>
   </div>
 
-  <script src="renderer.js"></script>
+  <!-- Quote modal (used for book highlights and standalone quotes) -->
+  <div class="modal-overlay" id="quote-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="quote-modal-title">New Quote</h3>
+        <button class="icon-btn" id="quote-modal-close">&times;</button>
+      </div>
+      <form id="quote-form">
+        <input type="hidden" id="quote-id" />
+
+        <label class="field" id="quote-book-field">
+          <span>Book</span>
+          <select id="quote-book">
+            <option value="">(standalone quote, no book)</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Quote</span>
+          <textarea id="quote-text" rows="4" required></textarea>
+        </label>
+
+        <label class="field">
+          <span id="quote-attribution-label">Attribution / location</span>
+          <input type="text" id="quote-attribution" placeholder="e.g. Location 177, or — Author Name" autocomplete="off" />
+        </label>
+
+        <label class="field checkbox-field">
+          <input type="checkbox" id="quote-favorite" />
+          <span>Favorite</span>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger" id="quote-delete-btn" hidden>Delete</button>
+          <div class="modal-actions-right">
+            <button type="button" class="btn btn-ghost" id="quote-cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

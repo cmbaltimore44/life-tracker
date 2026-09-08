@@ -1,0 +1,475 @@
+import * as booksApi from '../data/books.js';
+import * as quotesApi from '../data/quotes.js';
+import { hashSegments } from '../hash.js';
+
+const STATUS_LABELS = { want_to_read: 'Want to Read', reading: 'Reading', finished: 'Finished', dnf: 'Did Not Finish' };
+
+let userId = null;
+let books = [];
+let bookHighlights = [];
+let allQuotes = [];
+let currentBookId = null;
+let editingQuoteId = null;
+let quoteContext = 'standalone'; // 'book' | 'standalone'
+let quoteLockedBookId = null;
+
+const el = {};
+
+function cacheElements() {
+  Object.assign(el, {
+    booksPanel: document.getElementById('library-books-panel'),
+    bookDetailPanel: document.getElementById('library-book-detail-panel'),
+    quotesPanel: document.getElementById('library-quotes-panel'),
+
+    booksList: document.getElementById('books-list'),
+    bookCount: document.getElementById('book-count'),
+    newBookBtn: document.getElementById('new-book-btn'),
+
+    cover: document.getElementById('book-detail-cover'),
+    title: document.getElementById('book-title'),
+    author: document.getElementById('book-author'),
+    coverUrl: document.getElementById('book-cover-url'),
+    status: document.getElementById('book-status'),
+    format: document.getElementById('book-format'),
+    started: document.getElementById('book-started'),
+    finished: document.getElementById('book-finished'),
+    rating: document.getElementById('book-rating'),
+    isbn: document.getElementById('book-isbn'),
+    notes: document.getElementById('book-notes'),
+    saveBookBtn: document.getElementById('save-book-btn'),
+    deleteBookBtn: document.getElementById('delete-book-btn'),
+    addHighlightBtn: document.getElementById('add-highlight-btn'),
+    highlightsList: document.getElementById('book-highlights-list'),
+
+    quoteCount: document.getElementById('quote-count'),
+    newQuoteBtn: document.getElementById('new-quote-btn'),
+    quotesList: document.getElementById('quotes-list'),
+
+    tabLinks: document.querySelectorAll('.tab-link'),
+
+    quoteModalOverlay: document.getElementById('quote-modal-overlay'),
+    quoteModalTitle: document.getElementById('quote-modal-title'),
+    quoteModalClose: document.getElementById('quote-modal-close'),
+    quoteForm: document.getElementById('quote-form'),
+    quoteBookField: document.getElementById('quote-book-field'),
+    quoteBook: document.getElementById('quote-book'),
+    quoteText: document.getElementById('quote-text'),
+    quoteAttribution: document.getElementById('quote-attribution'),
+    quoteAttributionLabel: document.getElementById('quote-attribution-label'),
+    quoteFavorite: document.getElementById('quote-favorite'),
+    quoteDeleteBtn: document.getElementById('quote-delete-btn'),
+    quoteCancelBtn: document.getElementById('quote-cancel-btn'),
+  });
+}
+
+function showError(err) {
+  console.error(err);
+  alert(err.message || 'Something went wrong talking to the server.');
+}
+
+// ---------- books list ----------
+
+function renderBooksList() {
+  el.booksList.innerHTML = '';
+  el.bookCount.textContent = books.length ? `${books.length} book${books.length === 1 ? '' : 's'}` : '';
+
+  if (books.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = 'No books yet — add one to get started.';
+    el.booksList.appendChild(hint);
+    return;
+  }
+
+  books.forEach((book) => {
+    const row = document.createElement('div');
+    row.className = 'book-row';
+
+    const cover = document.createElement('img');
+    cover.className = 'book-cover-thumb';
+    cover.src = book.cover_image_url || '';
+    cover.alt = '';
+    row.appendChild(cover);
+
+    const meta = document.createElement('div');
+    meta.className = 'book-row-meta';
+
+    const title = document.createElement('div');
+    title.className = 'book-row-title';
+    title.textContent = book.title;
+    meta.appendChild(title);
+
+    if (book.author) {
+      const author = document.createElement('div');
+      author.className = 'book-row-author';
+      author.textContent = book.author;
+      meta.appendChild(author);
+    }
+
+    row.appendChild(meta);
+
+    const status = document.createElement('span');
+    status.className = 'project-row-status';
+    status.textContent = STATUS_LABELS[book.status];
+    row.appendChild(status);
+
+    row.addEventListener('click', () => {
+      location.hash = '#/library/books/' + book.id;
+    });
+
+    el.booksList.appendChild(row);
+  });
+}
+
+async function handleNewBook() {
+  try {
+    const created = await booksApi.createBook(userId, { title: 'Untitled Book', status: 'want_to_read' }, books.length);
+    books.unshift(created);
+    location.hash = '#/library/books/' + created.id;
+  } catch (err) {
+    showError(err);
+  }
+}
+
+// ---------- book detail ----------
+
+async function openBookDetail(id) {
+  if (id === currentBookId) return; // already showing this book — don't clobber in-progress edits
+  currentBookId = id;
+  let book = books.find((b) => b.id === id);
+  try {
+    if (!book) book = await booksApi.getBook(id);
+    bookHighlights = await quotesApi.listQuotesForBook(id);
+  } catch (err) {
+    showError(err);
+    location.hash = '#/library';
+    return;
+  }
+
+  el.cover.src = book.cover_image_url || '';
+  el.title.value = book.title;
+  el.author.value = book.author || '';
+  el.coverUrl.value = book.cover_image_url || '';
+  el.status.value = book.status;
+  el.format.value = book.format;
+  el.started.value = book.started_date || '';
+  el.finished.value = book.finished_date || '';
+  el.rating.value = book.rating != null ? String(book.rating) : '';
+  el.isbn.value = book.isbn || '';
+  el.notes.value = book.notes || '';
+  renderHighlights();
+}
+
+async function handleSaveBook() {
+  const ratingValue = el.rating.value ? Number(el.rating.value) : null;
+  const fields = {
+    title: el.title.value.trim() || 'Untitled Book',
+    author: el.author.value.trim() || null,
+    cover_image_url: el.coverUrl.value.trim() || null,
+    status: el.status.value,
+    format: el.format.value,
+    started_date: el.started.value || null,
+    finished_date: el.finished.value || null,
+    rating: ratingValue,
+    isbn: el.isbn.value.trim() || null,
+    notes: el.notes.value.trim() || null,
+  };
+  try {
+    const updated = await booksApi.updateBook(currentBookId, fields);
+    const index = books.findIndex((b) => b.id === currentBookId);
+    if (index >= 0) books[index] = updated;
+    renderBooksList();
+    location.hash = '#/library';
+  } catch (err) {
+    showError(err);
+  }
+}
+
+async function handleDeleteBook() {
+  if (!currentBookId) return;
+  if (!confirm('Delete this book and all its highlights? This cannot be undone.')) return;
+  try {
+    await booksApi.deleteBook(currentBookId);
+    books = books.filter((b) => b.id !== currentBookId);
+    location.hash = '#/library';
+  } catch (err) {
+    showError(err);
+  }
+}
+
+// ---------- quotes (shared between book highlights + standalone browser) ----------
+
+function renderQuoteRow(quote, context) {
+  const row = document.createElement('div');
+  row.className = 'quote-row';
+
+  const text = document.createElement('div');
+  text.className = 'quote-text';
+  text.textContent = `“${quote.quote_text}”`;
+  row.appendChild(text);
+
+  const footer = document.createElement('div');
+  footer.className = 'quote-row-footer';
+
+  const attribution = document.createElement('span');
+  attribution.className = 'quote-attribution';
+  attribution.textContent = quote.attribution || '';
+  footer.appendChild(attribution);
+
+  const actions = document.createElement('div');
+  actions.className = 'quote-row-actions';
+
+  const favBtn = document.createElement('button');
+  favBtn.type = 'button';
+  favBtn.className = 'star-btn' + (quote.is_favorite ? ' starred' : '');
+  favBtn.title = quote.is_favorite ? 'Unfavorite' : 'Favorite';
+  favBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      await quotesApi.updateQuote(quote.id, { is_favorite: !quote.is_favorite });
+      await afterQuoteMutation();
+    } catch (err) {
+      showError(err);
+    }
+  });
+  actions.appendChild(favBtn);
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'routine-remove';
+  removeBtn.textContent = '×';
+  removeBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm('Delete this quote?')) return;
+    try {
+      await quotesApi.deleteQuote(quote.id);
+      await afterQuoteMutation();
+    } catch (err) {
+      showError(err);
+    }
+  });
+  actions.appendChild(removeBtn);
+
+  footer.appendChild(actions);
+  row.appendChild(footer);
+
+  row.addEventListener('click', () => openQuoteModal({ quote, context }));
+
+  return row;
+}
+
+function renderHighlights() {
+  el.highlightsList.innerHTML = '';
+  if (bookHighlights.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = 'No highlights yet.';
+    el.highlightsList.appendChild(hint);
+    return;
+  }
+  bookHighlights.forEach((q) => el.highlightsList.appendChild(renderQuoteRow(q, 'book')));
+}
+
+function renderQuotesList() {
+  el.quotesList.innerHTML = '';
+  el.quoteCount.textContent = allQuotes.length ? `${allQuotes.length} quote${allQuotes.length === 1 ? '' : 's'}` : '';
+  if (allQuotes.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = 'No quotes yet — add one from a book or from anywhere else.';
+    el.quotesList.appendChild(hint);
+    return;
+  }
+  allQuotes.forEach((q) => el.quotesList.appendChild(renderQuoteRow(q, 'standalone')));
+}
+
+async function afterQuoteMutation() {
+  if (currentBookId && !el.bookDetailPanel.hidden) {
+    bookHighlights = await quotesApi.listQuotesForBook(currentBookId);
+    renderHighlights();
+  }
+  if (!el.quotesPanel.hidden) {
+    allQuotes = await quotesApi.listQuotes();
+    renderQuotesList();
+  }
+}
+
+function populateBookSelect(selectedId) {
+  el.quoteBook.innerHTML = '<option value="">(standalone quote, no book)</option>';
+  books.forEach((b) => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.title;
+    el.quoteBook.appendChild(opt);
+  });
+  el.quoteBook.value = selectedId || '';
+}
+
+function bookAttributionPrefix(bookId) {
+  const book = books.find((b) => b.id === bookId);
+  return book ? `${book.title} - ` : '';
+}
+
+function openQuoteModal({ quote = null, context, bookId = null } = {}) {
+  editingQuoteId = quote ? quote.id : null;
+  quoteContext = context;
+  quoteLockedBookId = bookId ?? (quote ? quote.book_id : currentBookId);
+
+  el.quoteModalTitle.textContent = quote ? 'Edit Quote' : 'New Quote';
+  el.quoteBookField.hidden = context === 'book';
+  if (context !== 'book') populateBookSelect(quote ? quote.book_id : null);
+
+  el.quoteText.value = quote ? quote.quote_text : '';
+
+  const rawAttribution = quote ? quote.attribution || '' : '';
+  if (context === 'book') {
+    const prefix = bookAttributionPrefix(quoteLockedBookId);
+    el.quoteAttributionLabel.textContent = 'Page / location';
+    el.quoteAttribution.placeholder = 'e.g. 177';
+    el.quoteAttribution.value = prefix && rawAttribution.startsWith(prefix)
+      ? rawAttribution.slice(prefix.length)
+      : rawAttribution;
+  } else {
+    el.quoteAttributionLabel.textContent = 'Attribution / location';
+    el.quoteAttribution.placeholder = 'e.g. Location 177, or — Author Name';
+    el.quoteAttribution.value = rawAttribution;
+  }
+
+  el.quoteFavorite.checked = quote ? !!quote.is_favorite : false;
+  el.quoteDeleteBtn.hidden = !quote;
+  el.quoteModalOverlay.classList.add('open');
+  el.quoteText.focus();
+}
+
+function closeQuoteModal() {
+  el.quoteModalOverlay.classList.remove('open');
+  editingQuoteId = null;
+}
+
+async function handleQuoteSubmit(e) {
+  e.preventDefault();
+  const text = el.quoteText.value.trim();
+  if (!text) return;
+
+  const book_id = quoteContext === 'book' ? quoteLockedBookId : el.quoteBook.value || null;
+  const rawAttribution = el.quoteAttribution.value.trim();
+  const attribution = quoteContext === 'book' && rawAttribution
+    ? bookAttributionPrefix(quoteLockedBookId) + rawAttribution
+    : rawAttribution || null;
+
+  const fields = {
+    book_id,
+    quote_text: text,
+    attribution,
+    is_favorite: el.quoteFavorite.checked,
+  };
+
+  try {
+    if (editingQuoteId) {
+      await quotesApi.updateQuote(editingQuoteId, fields);
+    } else {
+      await quotesApi.createQuote(userId, fields, 0);
+    }
+    await afterQuoteMutation();
+    closeQuoteModal();
+  } catch (err) {
+    showError(err);
+  }
+}
+
+async function handleQuoteDelete() {
+  if (!editingQuoteId) return;
+  if (!confirm('Delete this quote?')) return;
+  try {
+    await quotesApi.deleteQuote(editingQuoteId);
+    await afterQuoteMutation();
+    closeQuoteModal();
+  } catch (err) {
+    showError(err);
+  }
+}
+
+// ---------- routing ----------
+
+function updateTabActive(tab) {
+  el.tabLinks.forEach((link) => link.classList.toggle('active', link.dataset.tab === tab));
+}
+
+function renderRoute() {
+  const segments = hashSegments(); // ['library', ...]
+  if (segments[0] !== 'library') return;
+  const sub = segments[1];
+  const id = segments[2];
+
+  el.booksPanel.hidden = !!sub;
+  el.bookDetailPanel.hidden = !(sub === 'books' && id);
+  el.quotesPanel.hidden = sub !== 'quotes';
+
+  updateTabActive(sub === 'quotes' ? 'quotes' : 'books');
+
+  if (sub === 'books' && id) {
+    openBookDetail(id);
+  } else {
+    currentBookId = null;
+  }
+  if (sub === 'quotes') {
+    quotesApi
+      .listQuotes()
+      .then((rows) => {
+        allQuotes = rows;
+        renderQuotesList();
+      })
+      .catch(showError);
+  }
+}
+
+// ---------- init ----------
+
+export async function initLibrary(uid) {
+  userId = uid;
+  cacheElements();
+
+  el.newBookBtn.addEventListener('click', handleNewBook);
+  el.saveBookBtn.addEventListener('click', handleSaveBook);
+  el.deleteBookBtn.addEventListener('click', handleDeleteBook);
+  el.coverUrl.addEventListener('input', () => {
+    el.cover.src = el.coverUrl.value.trim();
+  });
+
+  el.addHighlightBtn.addEventListener('click', () => {
+    openQuoteModal({ context: 'book', bookId: currentBookId });
+  });
+  el.newQuoteBtn.addEventListener('click', () => {
+    openQuoteModal({ context: 'standalone' });
+  });
+
+  el.quoteForm.addEventListener('submit', handleQuoteSubmit);
+  el.quoteDeleteBtn.addEventListener('click', handleQuoteDelete);
+  el.quoteModalClose.addEventListener('click', closeQuoteModal);
+  el.quoteCancelBtn.addEventListener('click', closeQuoteModal);
+  el.quoteModalOverlay.addEventListener('click', (e) => {
+    if (e.target === el.quoteModalOverlay) closeQuoteModal();
+  });
+
+  window.addEventListener('hashchange', renderRoute);
+
+  await refreshLibrary();
+  renderRoute();
+}
+
+export async function refreshLibrary() {
+  try {
+    books = await booksApi.listBooks();
+  } catch (err) {
+    showError(err);
+    return;
+  }
+  renderBooksList();
+  const segments = hashSegments();
+  if (segments[0] !== 'library') return;
+  if (segments[1] === 'books' && segments[2]) openBookDetail(segments[2]);
+  if (segments[1] === 'quotes') {
+    allQuotes = await quotesApi.listQuotes();
+    renderQuotesList();
+  }
+}

@@ -1,64 +1,72 @@
-# Task Kanban
+# Life Tracker
 
-A clean, minimal desktop kanban board for tracking tasks, built with Electron, HTML, CSS, and JavaScript.
+A personal life tracker — tasks, routines, projects, and a book/quote library — a plain HTML/CSS/JS web app (no build step, no framework) that syncs your data across devices via [Supabase](https://supabase.com).
+
+Live at <https://life-tracker-hq.vercel.app>.
 
 ## Features
 
-- Three columns: To Do, In Progress, Done — drag and drop cards between them
-- Tag tasks with categories, each with a color (pick a preset or a custom color)
-- Reorder categories by dragging them in the category manager
-- Due dates with overdue/soon-due highlighting
-- Priority levels, notes, search, and filter by category
-- Light/dark mode toggle
-- All data is stored locally on your machine (no accounts, no network)
+- **Board**: three columns (To Do, In Progress, Done), drag and drop between them; categories with colors; due dates with overdue/soon-due highlighting; priority levels, notes, search, and filtering.
+- **Routines**: a second tab for daily habits, grouped into Morning / Afternoon / Evening checklists, with streak tracking.
+- Light/dark mode toggle, styled in a warm cream/charcoal palette with an orange accent.
+- Sign in with a one-time email code (no password). Your data lives in Supabase and follows you between your computer and phone.
 
-## Running in development
+## One-time setup (Supabase)
+
+1. Create a free project at [supabase.com](https://supabase.com/dashboard).
+2. In the SQL Editor, run the schema in [`supabase/schema.sql`](supabase/schema.sql) — this creates the `categories`, `tasks`, `routines`, and `routine_completions` tables with Row Level Security so each signed-in user only ever sees their own rows.
+3. In Settings → API, copy your **Project URL** and **anon public key**.
+4. Paste them into `js/supabaseClient.js` (`SUPABASE_URL` / `SUPABASE_ANON_KEY`). The anon key is meant to be public — RLS is what actually protects the data, not the key.
+5. Email auth (with OTP codes) is on by default — nothing else to configure.
+
+## Running locally
+
+No install step — it's static files.
 
 ```bash
-npm install
-npm start
+npm run dev
 ```
 
-## Updating the code
+Opens the app via `npx serve .`. On first sign-in on a new device, enter your email, then the 6-digit code Supabase emails you.
 
-After making changes to `main.js`, `preload.js`, `index.html`, `style.css`, or `renderer.js`:
+## Deploying (Vercel)
 
-1. Run `npm start` to try the change in dev mode.
-2. When you're happy with it, rebuild the installable app:
-   ```bash
-   npm run dist
-   ```
-   This produces an updated `Task Kanban.app` and `.dmg` in `dist/`.
-3. Open the new `.dmg` and drag `Task Kanban.app` into `Applications` again to replace the old version (your task data is stored separately and won't be lost).
-4. Commit your changes:
-   ```bash
-   git add -A
-   git commit -m "Describe your change"
-   git push
-   ```
+This is a static site — no serverless functions needed, since the browser talks to Supabase directly.
+
+```bash
+npx vercel        # preview deploy
+npx vercel --prod # production deploy
+```
+
+Visit the deployed URL from your phone's browser and sign in with the same email to see the same data. Consider using "Add to Home Screen" on your phone for an app-like icon (the `manifest.webmanifest` in this repo supports it).
 
 ## Project structure
 
-| File | Purpose |
+| Path | Purpose |
 |---|---|
-| `main.js` | Electron main process — creates the app window |
-| `preload.js` | Isolated preload script (no privileged APIs currently exposed) |
-| `index.html` | App layout and modals |
-| `style.css` | Styling, including light/dark theme variables |
-| `renderer.js` | App logic: tasks, categories, filtering, drag-and-drop, persistence |
-| `build/icon.icns` | App icon used by the packaged `.app`/`.dmg` |
-| `build/icon.png` | Same icon, used for the Dock icon while running in dev mode |
+| `index.html` | Sidebar shell, auth screen, board view, routines view, modals |
+| `style.css` | Theme variables (light/dark), layout, and component styling |
+| `js/app.js` | Entry point: auth gate, hash-based router, focus/visibility refresh |
+| `js/supabaseClient.js` | Supabase client init — put your project URL/anon key here |
+| `js/auth.js` | Email OTP sign-in/out |
+| `js/theme.js` | Light/dark theme toggle |
+| `js/migrate.js` | One-time import of old localStorage data into Supabase |
+| `js/data/*.js` | CRUD calls to Supabase for tasks, categories, routines, completions |
+| `js/views/board.js` | Board rendering, task/category modals, drag-and-drop |
+| `js/views/routines.js` | Routines checklist rendering, streaks, drag-and-drop |
+| `supabase/schema.sql` | Database schema + Row Level Security policies |
+| `build/icon.icns`, `build/icon.png` | App icon, reused as the favicon / home-screen icon |
 
 ## Changing the app icon
 
-`build/icon.icns` (packaging) and `build/icon.png` (dev Dock icon) are generated from `scripts/icon-source.html`, a plain HTML/CSS/SVG file. To tweak the design:
+`build/icon.icns` and `build/icon.png` are generated from `scripts/icon-source.html`, a plain HTML/CSS/SVG file. To tweak the design:
 
 1. Edit `scripts/icon-source.html`.
-2. Re-render it to a 1024×1024 PNG:
+2. Re-render it to a 1024×1024 PNG (this pulls Electron on-demand via `npx`, since it's no longer an installed dependency):
    ```bash
-   ./node_modules/.bin/electron scripts/generate-icon.js
+   npx electron scripts/generate-icon.js
    ```
-3. Rebuild the `.icns` and dev PNG from that master image:
+3. Rebuild the `.icns` and PNG from that master image:
    ```bash
    cd build
    rm -rf icon.iconset
@@ -78,4 +86,3 @@ After making changes to `main.js`, `preload.js`, `index.html`, `style.css`, or `
    rm -rf icon.iconset icon-source.png
    cd ..
    ```
-4. Run `npm run dist` to rebuild the app with the new icon.

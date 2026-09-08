@@ -1,0 +1,36 @@
+import { supabase } from './supabaseClient.js';
+
+export async function getSession() {
+  const { data } = await supabase.auth.getSession();
+  return data.session;
+}
+
+export function onAuthChange(callback) {
+  supabase.auth.onAuthStateChange((_event, session) => callback(session));
+}
+
+export async function requestCode(email) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  if (error) throw error;
+}
+
+export async function verifyCode(email, code) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: 'email',
+  });
+  if (error) throw error;
+  return data.session;
+}
+
+export async function signOut() {
+  await supabase.auth.signOut();
+}
+
+export function currentUserId(session) {
+  return session?.user?.id || null;
+}

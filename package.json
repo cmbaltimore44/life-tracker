@@ -1,34 +1,11 @@
 {
-  "name": "school-kanban",
-  "version": "1.0.0",
-  "description": "A minimal kanban board for tracking tasks by category.",
-  "main": "main.js",
+  "name": "life-tracker",
+  "version": "3.0.0",
+  "description": "A personal life tracker — tasks, routines, projects, and a book/quote library, synced across devices via Supabase.",
   "author": "cmbaltimore44",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder --mac"
-  },
-  "devDependencies": {
-    "electron": "^32.0.0",
-    "electron-builder": "^25.0.0"
-  },
-  "build": {
-    "appId": "com.baltimore.taskkanban",
-    "productName": "Task Kanban",
-    "mac": {
-      "category": "public.app-category.education",
-      "target": "dmg",
-      "icon": "build/icon.icns"
-    },
-    "files": [
-      "main.js",
-      "preload.js",
-      "index.html",
-      "style.css",
-      "renderer.js",
-      "build/icon.png"
-    ]
+    "dev": "npx serve ."
   }
 }
