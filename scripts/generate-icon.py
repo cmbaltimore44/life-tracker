@@ -8,7 +8,6 @@ import os
 import shutil
 import subprocess
 
-import numpy as np
 from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,11 +15,12 @@ BUILD_DIR = os.path.join(ROOT, 'build')
 
 SIZE = 1024
 RADIUS = 224
+BORDER_WIDTH = 34
 
-# Matches the app's --accent / warm terracotta-and-cream theme (style.css).
-GRADIENT_START = '#d97a4f'  # light rust, top-left highlight
-GRADIENT_END = '#8a341b'    # dark rust, bottom-right shadow
-CREAM = '#f8eee5'           # matches --surface
+# Matches the app's cream-and-terracotta theme (style.css): cream dominant,
+# accent used sparingly for the badge/border, same as buttons in the app.
+CREAM = '#f8eee5'       # --surface
+ACCENT = '#bf5433'      # --accent
 
 
 def hex_to_rgb(h):
@@ -29,43 +29,37 @@ def hex_to_rgb(h):
 
 
 def render_master():
-    c1 = hex_to_rgb(GRADIENT_START)
-    c2 = hex_to_rgb(GRADIENT_END)
     cream = hex_to_rgb(CREAM)
-
-    angle = np.radians(160)
-    dx, dy = np.cos(angle), np.sin(angle)
-
-    ys, xs = np.mgrid[0:SIZE, 0:SIZE]
-    proj = xs * dx + ys * dy
-    proj = (proj - proj.min()) / (proj.max() - proj.min())
-
-    grad = np.zeros((SIZE, SIZE, 3), dtype=np.uint8)
-    for i in range(3):
-        grad[..., i] = (c1[i] + (c2[i] - c1[i]) * proj).astype(np.uint8)
-
-    grad_img = Image.fromarray(grad, 'RGB').convert('RGBA')
-
-    mask = Image.new('L', (SIZE, SIZE), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, SIZE - 1, SIZE - 1], radius=RADIUS, fill=255)
+    accent = hex_to_rgb(ACCENT)
 
     base = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
-    base.paste(grad_img, (0, 0), mask)
-
     draw = ImageDraw.Draw(base)
-    bar_height = 92
-    gap = 70
-    widths = [0.60, 0.60 * 0.74, 0.60 * 0.52]
-    start_x = SIZE * 0.20
-    total_height = bar_height * 3 + gap * 2
-    start_y = (SIZE - total_height) / 2
 
-    for i, wfrac in enumerate(widths):
-        y0 = start_y + i * (bar_height + gap)
-        y1 = y0 + bar_height
-        x0 = start_x
-        x1 = start_x + SIZE * wfrac
-        draw.rounded_rectangle([x0, y0, x1, y1], radius=bar_height / 2, fill=cream + (255,))
+    # Cream field with a slim accent-colored border ring.
+    draw.rounded_rectangle([0, 0, SIZE - 1, SIZE - 1], radius=RADIUS, fill=accent + (255,))
+    draw.rounded_rectangle(
+        [BORDER_WIDTH, BORDER_WIDTH, SIZE - 1 - BORDER_WIDTH, SIZE - 1 - BORDER_WIDTH],
+        radius=RADIUS - BORDER_WIDTH,
+        fill=cream + (255,),
+    )
+
+    # Accent badge with a cream checkmark, centered — echoes the app's
+    # solid-accent primary buttons and reads as "tracked / done".
+    badge_d = int(SIZE * 0.50)
+    bx0 = (SIZE - badge_d) // 2
+    by0 = (SIZE - badge_d) // 2
+    draw.ellipse([bx0, by0, bx0 + badge_d, by0 + badge_d], fill=accent + (255,))
+
+    cx, cy = SIZE / 2, SIZE / 2
+    pts = [
+        (cx - badge_d * 0.20, cy + badge_d * 0.02),
+        (cx - badge_d * 0.05, cy + badge_d * 0.17),
+        (cx + badge_d * 0.24, cy - badge_d * 0.18),
+    ]
+    draw.line(pts, fill=cream + (255,), width=46, joint='curve')
+    for p in pts:
+        r = 23
+        draw.ellipse([p[0] - r, p[1] - r, p[0] + r, p[1] + r], fill=cream + (255,))
 
     return base
 
