@@ -40,6 +40,7 @@ function cacheElements() {
     taskTitle: document.getElementById('task-title'),
     taskCategory: document.getElementById('task-category'),
     taskDue: document.getElementById('task-due'),
+    taskStatus: document.getElementById('task-status'),
     taskPriority: document.getElementById('task-priority'),
     taskNotes: document.getElementById('task-notes'),
     taskDeleteBtn: document.getElementById('task-delete-btn'),
@@ -239,17 +240,17 @@ export function openTaskModal(taskId, defaultColumn) {
     el.taskTitle.value = task.title;
     el.taskCategory.value = task.category_id || '';
     el.taskDue.value = task.due_date || '';
+    el.taskStatus.value = task.status;
     el.taskPriority.value = task.priority || 'medium';
     el.taskNotes.value = task.notes || '';
     el.taskDeleteBtn.hidden = false;
-    el.taskForm.dataset.column = task.status;
   } else {
     el.taskModalTitle.textContent = 'New Task';
     el.taskForm.reset();
     el.taskId.value = '';
+    el.taskStatus.value = defaultColumn || 'todo';
     el.taskPriority.value = 'medium';
     el.taskDeleteBtn.hidden = true;
-    el.taskForm.dataset.column = defaultColumn || 'todo';
   }
 
   el.taskModalOverlay.classList.add('open');
@@ -270,6 +271,7 @@ async function handleTaskSubmit(e) {
     title,
     category_id: el.taskCategory.value || null,
     due_date: el.taskDue.value || null,
+    status: el.taskStatus.value,
     priority: el.taskPriority.value,
     notes: el.taskNotes.value.trim() || null,
   };
@@ -280,11 +282,7 @@ async function handleTaskSubmit(e) {
       const index = tasks.findIndex((t) => t.id === editingTaskId);
       tasks[index] = updated;
     } else {
-      const created = await tasksApi.createTask(
-        userId,
-        { ...fields, status: el.taskForm.dataset.column || 'todo' },
-        tasks.length
-      );
+      const created = await tasksApi.createTask(userId, fields, tasks.length);
       tasks.push(created);
     }
     renderBoard();
