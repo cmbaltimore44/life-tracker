@@ -5,6 +5,7 @@ import * as completionsApi from '../data/completions.js';
 import * as quotesApi from '../data/quotes.js';
 import * as booksApi from '../data/books.js';
 import { getCategory as getCategoryFrom, dueStatus, formatDue } from '../taskDisplay.js';
+import { showError } from '../toast.js';
 
 const TIME_OF_DAY_LABELS = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
 
@@ -24,11 +25,6 @@ function cacheElements() {
     quote: document.getElementById('today-quote'),
     routinesWidget: document.getElementById('today-routines-widget'),
   });
-}
-
-function showError(err) {
-  console.error(err);
-  alert(err.message || 'Something went wrong talking to the server.');
 }
 
 function getCategory(categoryId) {

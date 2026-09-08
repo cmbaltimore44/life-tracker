@@ -1,6 +1,7 @@
 import * as projectsApi from '../data/projects.js';
 import * as projectTasksApi from '../data/projectTasks.js';
 import { hashSegments } from '../hash.js';
+import { showError } from '../toast.js';
 
 const STATUS_LABELS = { not_started: 'Not Started', in_progress: 'In Progress', done: 'Done' };
 
@@ -29,11 +30,6 @@ function cacheElements() {
     checklist: document.getElementById('project-checklist'),
     checklistForm: document.getElementById('project-checklist-form'),
   });
-}
-
-function showError(err) {
-  console.error(err);
-  alert(err.message || 'Something went wrong talking to the server.');
 }
 
 function renderList() {

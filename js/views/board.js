@@ -1,6 +1,7 @@
 import * as tasksApi from '../data/tasks.js';
 import * as categoriesApi from '../data/categories.js';
 import { getCategory as getCategoryFrom, dueStatus, formatDue } from '../taskDisplay.js';
+import { showError, showToast } from '../toast.js';
 
 const COLORS = [
   '#bf5433', '#c9463f', '#b8791a', '#2fa84f',
@@ -70,11 +71,6 @@ function cacheElements() {
 
 function getCategory(categoryId) {
   return getCategoryFrom(categories, categoryId);
-}
-
-function showError(err) {
-  console.error(err);
-  alert(err.message || 'Something went wrong talking to the server.');
 }
 
 // ---------- rendering ----------
@@ -313,7 +309,7 @@ async function handleTaskDelete() {
 async function toggleStar(task) {
   const next = !task.is_starred;
   if (next && tasks.filter((t) => t.is_starred).length >= 3) {
-    alert('You can only star up to 3 tasks for Today. Unstar one first.');
+    showToast('You can only star up to 3 tasks for Today. Unstar one first.', { type: 'info' });
     return;
   }
   task.is_starred = next;

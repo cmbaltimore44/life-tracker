@@ -1,5 +1,6 @@
 import * as routinesApi from '../data/routines.js';
 import * as completionsApi from '../data/completions.js';
+import { showError } from '../toast.js';
 
 const GROUPS = ['morning', 'afternoon', 'evening'];
 
@@ -17,11 +18,6 @@ function cacheElements() {
     forms[tod] = document.querySelector(`.routine-add-form[data-tod="${tod}"]`);
   });
   routineCountEl = document.getElementById('routine-count');
-}
-
-function showError(err) {
-  console.error(err);
-  alert(err.message || 'Something went wrong talking to the server.');
 }
 
 function renderAll() {

@@ -1,6 +1,7 @@
 import * as booksApi from '../data/books.js';
 import * as quotesApi from '../data/quotes.js';
 import { hashSegments } from '../hash.js';
+import { showError } from '../toast.js';
 
 const STATUS_LABELS = { want_to_read: 'Want to Read', reading: 'Reading', finished: 'Finished', dnf: 'Did Not Finish' };
 
@@ -62,11 +63,6 @@ function cacheElements() {
     quoteDeleteBtn: document.getElementById('quote-delete-btn'),
     quoteCancelBtn: document.getElementById('quote-cancel-btn'),
   });
-}
-
-function showError(err) {
-  console.error(err);
-  alert(err.message || 'Something went wrong talking to the server.');
 }
 
 // ---------- books list ----------
