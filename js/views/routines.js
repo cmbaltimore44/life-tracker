@@ -165,6 +165,14 @@ function wireAddForms() {
   });
 }
 
+export function highlightRoutine(id) {
+  const row = document.querySelector(`.routine-row[data-id="${id}"]`);
+  if (!row) return;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.classList.add('flash-highlight');
+  setTimeout(() => row.classList.remove('flash-highlight'), 1500);
+}
+
 export async function initRoutines(uid) {
   userId = uid;
   cacheElements();

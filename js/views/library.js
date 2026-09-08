@@ -286,6 +286,20 @@ function renderQuotesList() {
   visible.forEach((q) => el.quotesList.appendChild(renderQuoteRow(q, 'standalone')));
 }
 
+export async function openQuoteResult(quoteId, bookId) {
+  if (bookId) {
+    location.hash = '#/library/books/' + bookId;
+    bookHighlights = await quotesApi.listQuotesForBook(bookId);
+    renderHighlights();
+    openQuoteModal({ quote: bookHighlights.find((q) => q.id === quoteId), context: 'book' });
+  } else {
+    location.hash = '#/library/quotes';
+    allQuotes = await quotesApi.listQuotes();
+    renderQuotesList();
+    openQuoteModal({ quote: allQuotes.find((q) => q.id === quoteId), context: 'standalone' });
+  }
+}
+
 async function afterQuoteMutation() {
   if (currentBookId && !el.bookDetailPanel.hidden) {
     bookHighlights = await quotesApi.listQuotesForBook(currentBookId);

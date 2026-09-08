@@ -6,6 +6,7 @@ import { initBoard, refreshBoard } from './views/board.js';
 import { initRoutines, refreshRoutines } from './views/routines.js';
 import { initProjects, refreshProjects } from './views/projects.js';
 import { initLibrary, refreshLibrary } from './views/library.js';
+import { initSearch } from './search.js';
 
 const authScreen = document.getElementById('auth-screen');
 const appShell = document.getElementById('app-shell');
@@ -134,6 +135,7 @@ async function enterApp(session) {
     initProjects(uid),
     initLibrary(uid),
   ]);
+  initSearch();
   wireRefreshOnFocus();
 }
 

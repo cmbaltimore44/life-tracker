@@ -222,7 +222,7 @@ function renderCard(task) {
 
 // ---------- task modal ----------
 
-function openTaskModal(taskId, defaultColumn) {
+export function openTaskModal(taskId, defaultColumn) {
   editingTaskId = taskId || null;
   renderTaskCategoryOptions();
 

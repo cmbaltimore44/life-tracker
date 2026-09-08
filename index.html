@@ -358,6 +358,17 @@
     </div>
   </div>
 
+  <!-- Global search -->
+  <button id="search-fab" class="search-fab" title="Search (⌘K)">🔍</button>
+
+  <div class="modal-overlay" id="search-modal-overlay">
+    <div class="modal search-modal">
+      <input type="text" id="search-modal-input" class="search-modal-input" placeholder="Search tasks, projects, books, quotes…" autocomplete="off" />
+      <div class="search-hint">↑↓ to navigate · ↵ to open · esc to close</div>
+      <div id="search-results" class="search-results"></div>
+    </div>
+  </div>
+
   <!-- Task modal -->
   <div class="modal-overlay" id="task-modal-overlay">
     <div class="modal">
