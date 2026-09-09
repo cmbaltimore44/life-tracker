@@ -278,6 +278,13 @@ async function handleTaskSubmit(e) {
     notes: el.taskNotes.value.trim() || null,
   };
 
+  if (editingTaskId) {
+    const existing = tasks.find((t) => t.id === editingTaskId);
+    if (existing && fields.status === 'done' && existing.is_starred) {
+      fields.is_starred = false;
+    }
+  }
+
   try {
     if (editingTaskId) {
       const updated = await tasksApi.updateTask(editingTaskId, fields);
@@ -478,11 +485,18 @@ function wireColumnDrop() {
       if (!task) return;
       const newStatus = container.dataset.column;
       if (task.status === newStatus) return;
+      const wasStarred = task.is_starred;
       task.status = newStatus;
+      const updates = { status: newStatus };
+      if (newStatus === 'done' && wasStarred) {
+        task.is_starred = false;
+        updates.is_starred = false;
+      }
       renderBoard();
       try {
-        await tasksApi.updateTask(task.id, { status: newStatus });
+        await tasksApi.updateTask(task.id, updates);
       } catch (err) {
+        if (newStatus === 'done' && wasStarred) task.is_starred = true;
         showError(err);
       }
     });
