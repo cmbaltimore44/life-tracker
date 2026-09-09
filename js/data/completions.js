@@ -47,6 +47,16 @@ export async function markIncomplete(routineId, dateISO) {
   if (error) throw error;
 }
 
+export function countsByDate(completions) {
+  const counts = new Map();
+  for (const dates of completions.values()) {
+    for (const d of dates) {
+      counts.set(d, (counts.get(d) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
 // Grace-period streak: a routine not yet checked off today still shows
 // yesterday's streak, so it doesn't look reset before the day is over.
 export function computeStreak(completedDateSet, todayDateISO) {

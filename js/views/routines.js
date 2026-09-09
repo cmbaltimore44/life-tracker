@@ -3,6 +3,8 @@ import * as completionsApi from '../data/completions.js';
 import { showError, showToast } from '../toast.js';
 
 const GROUPS = ['morning', 'afternoon', 'evening'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const HEATMAP_WEEKS = 53;
 
 let userId = null;
 let routines = [];
@@ -11,6 +13,9 @@ let completions = new Map();
 const lists = {};
 const forms = {};
 let routineCountEl = null;
+let heatmapGridEl = null;
+let heatmapMonthsEl = null;
+let heatmapSummaryEl = null;
 
 function cacheElements() {
   GROUPS.forEach((tod) => {
@@ -18,12 +23,92 @@ function cacheElements() {
     forms[tod] = document.querySelector(`.routine-add-form[data-tod="${tod}"]`);
   });
   routineCountEl = document.getElementById('routine-count');
+  heatmapGridEl = document.getElementById('heatmap-grid');
+  heatmapMonthsEl = document.getElementById('heatmap-months');
+  heatmapSummaryEl = document.getElementById('routine-heatmap-summary');
 }
 
 function renderAll() {
   GROUPS.forEach(renderGroup);
   routineCountEl.textContent = routines.length
     ? `${routines.length} routine${routines.length === 1 ? '' : 's'}`
+    : '';
+  renderHeatmap();
+}
+
+function startOfDay(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function addDaysToDate(date, delta) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + delta);
+  return d;
+}
+
+function toISODate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function levelForPct(pct) {
+  if (pct <= 0) return 0;
+  if (pct <= 25) return 1;
+  if (pct <= 50) return 2;
+  if (pct <= 75) return 3;
+  return 4;
+}
+
+// Percentage uses the current routine count as the denominator for every day,
+// since we don't keep a historical record of how many routines existed on a
+// given past date.
+function renderHeatmap() {
+  const today = startOfDay(new Date());
+  const gridEnd = addDaysToDate(today, 6 - today.getDay());
+  const gridStart = addDaysToDate(gridEnd, -(HEATMAP_WEEKS * 7 - 1));
+
+  const total = routines.length;
+  const counts = completionsApi.countsByDate(completions);
+
+  heatmapGridEl.innerHTML = '';
+  heatmapMonthsEl.innerHTML = '';
+
+  let cursor = gridStart;
+  let lastMonth = -1;
+  let activeDays = 0;
+
+  for (let w = 0; w < HEATMAP_WEEKS; w++) {
+    const monthLabel = document.createElement('span');
+    if (cursor.getMonth() !== lastMonth) {
+      monthLabel.textContent = MONTH_NAMES[cursor.getMonth()];
+      lastMonth = cursor.getMonth();
+    }
+    heatmapMonthsEl.appendChild(monthLabel);
+
+    for (let d = 0; d < 7; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      if (cursor > today) {
+        cell.classList.add('is-future');
+      } else {
+        const iso = toISODate(cursor);
+        const count = Math.min(counts.get(iso) || 0, total);
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+        cell.dataset.level = String(levelForPct(pct));
+        cell.title = total > 0 ? `${iso}: ${count}/${total} routines (${pct}%)` : `${iso}: no routines yet`;
+        if (count > 0) activeDays++;
+      }
+      heatmapGridEl.appendChild(cell);
+      cursor = addDaysToDate(cursor, 1);
+    }
+  }
+
+  heatmapSummaryEl.textContent = total
+    ? `${activeDays} active day${activeDays === 1 ? '' : 's'} in the last year`
     : '';
 }
 
