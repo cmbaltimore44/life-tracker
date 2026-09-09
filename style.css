@@ -494,23 +494,27 @@ input, textarea, select, button {
 }
 
 .voice-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   background: transparent;
-  border: none;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
   padding: 0;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: normal;
-  letter-spacing: normal;
-  text-transform: none;
-  line-height: 1;
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
-.voice-btn:hover { color: var(--accent); }
+.voice-btn svg { width: 15px; height: 15px; }
+.voice-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .voice-btn.recording {
+  border-color: var(--danger);
   color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
   animation: voice-pulse 1s ease-in-out infinite;
 }
 
@@ -694,11 +698,19 @@ input, textarea, select, button {
   flex: 1;
   overflow: auto;
   padding: 4px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
+
+.routine-groups-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(220px, 300px));
   justify-content: center;
   align-content: start;
   gap: 16px;
+  width: 100%;
 }
 
 .routine-group {
@@ -840,7 +852,8 @@ input, textarea, select, button {
 
 /* Routine heatmap */
 .routine-heatmap-wrap {
-  padding: 0 28px 12px 28px;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .routine-heatmap-header {
@@ -938,10 +951,6 @@ input, textarea, select, button {
 }
 
 .routine-heatmap-legend .heatmap-cell { width: 10px; height: 10px; }
-
-@media (max-width: 900px) {
-  .routine-heatmap-wrap { padding: 0 14px 12px 14px; }
-}
 
 /* Auth screen */
 .auth-screen {
@@ -1451,9 +1460,12 @@ input, textarea, select, button {
   }
 
   .routine-groups {
+    padding: 4px 14px 16px 14px;
+  }
+
+  .routine-groups-grid {
     grid-template-columns: minmax(0, 1fr);
     justify-content: stretch;
-    padding: 4px 14px 16px 14px;
   }
 
   .today-grid {

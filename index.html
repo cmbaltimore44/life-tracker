@@ -134,59 +134,61 @@
           </div>
         </header>
 
-        <div class="routine-heatmap-wrap">
-          <div class="routine-heatmap-header">
-            <span class="routine-heatmap-title">Consistency</span>
-            <span class="routine-heatmap-summary" id="routine-heatmap-summary"></span>
-          </div>
-          <div class="routine-heatmap-scroll">
-            <div class="routine-heatmap">
-              <div class="heatmap-months" id="heatmap-months"></div>
-              <div class="heatmap-body">
-                <div class="heatmap-daylabels">
-                  <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
-                </div>
-                <div class="heatmap-grid" id="heatmap-grid"></div>
-              </div>
+        <div class="routine-groups" id="routine-groups">
+          <div class="routine-groups-grid">
+            <div class="routine-group" data-tod="morning">
+              <div class="routine-group-header"><h2>Morning</h2></div>
+              <ul class="routine-list" data-tod="morning" id="list-morning"></ul>
+              <form class="routine-add-form" data-tod="morning">
+                <input type="text" placeholder="Add a morning routine…" required />
+                <button type="submit" class="btn btn-ghost">Add</button>
+              </form>
+            </div>
+
+            <div class="routine-group" data-tod="afternoon">
+              <div class="routine-group-header"><h2>Afternoon</h2></div>
+              <ul class="routine-list" data-tod="afternoon" id="list-afternoon"></ul>
+              <form class="routine-add-form" data-tod="afternoon">
+                <input type="text" placeholder="Add an afternoon routine…" required />
+                <button type="submit" class="btn btn-ghost">Add</button>
+              </form>
+            </div>
+
+            <div class="routine-group" data-tod="evening">
+              <div class="routine-group-header"><h2>Evening</h2></div>
+              <ul class="routine-list" data-tod="evening" id="list-evening"></ul>
+              <form class="routine-add-form" data-tod="evening">
+                <input type="text" placeholder="Add an evening routine…" required />
+                <button type="submit" class="btn btn-ghost">Add</button>
+              </form>
             </div>
           </div>
-          <div class="routine-heatmap-legend">
-            <span>Less</span>
-            <span class="heatmap-cell" data-level="0"></span>
-            <span class="heatmap-cell" data-level="1"></span>
-            <span class="heatmap-cell" data-level="2"></span>
-            <span class="heatmap-cell" data-level="3"></span>
-            <span class="heatmap-cell" data-level="4"></span>
-            <span>More</span>
-          </div>
-        </div>
 
-        <div class="routine-groups" id="routine-groups">
-          <div class="routine-group" data-tod="morning">
-            <div class="routine-group-header"><h2>Morning</h2></div>
-            <ul class="routine-list" data-tod="morning" id="list-morning"></ul>
-            <form class="routine-add-form" data-tod="morning">
-              <input type="text" placeholder="Add a morning routine…" required />
-              <button type="submit" class="btn btn-ghost">Add</button>
-            </form>
-          </div>
-
-          <div class="routine-group" data-tod="afternoon">
-            <div class="routine-group-header"><h2>Afternoon</h2></div>
-            <ul class="routine-list" data-tod="afternoon" id="list-afternoon"></ul>
-            <form class="routine-add-form" data-tod="afternoon">
-              <input type="text" placeholder="Add an afternoon routine…" required />
-              <button type="submit" class="btn btn-ghost">Add</button>
-            </form>
-          </div>
-
-          <div class="routine-group" data-tod="evening">
-            <div class="routine-group-header"><h2>Evening</h2></div>
-            <ul class="routine-list" data-tod="evening" id="list-evening"></ul>
-            <form class="routine-add-form" data-tod="evening">
-              <input type="text" placeholder="Add an evening routine…" required />
-              <button type="submit" class="btn btn-ghost">Add</button>
-            </form>
+          <div class="routine-heatmap-wrap">
+            <div class="routine-heatmap-header">
+              <span class="routine-heatmap-title">Consistency</span>
+              <span class="routine-heatmap-summary" id="routine-heatmap-summary"></span>
+            </div>
+            <div class="routine-heatmap-scroll">
+              <div class="routine-heatmap">
+                <div class="heatmap-months" id="heatmap-months"></div>
+                <div class="heatmap-body">
+                  <div class="heatmap-daylabels">
+                    <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
+                  </div>
+                  <div class="heatmap-grid" id="heatmap-grid"></div>
+                </div>
+              </div>
+            </div>
+            <div class="routine-heatmap-legend">
+              <span>Less</span>
+              <span class="heatmap-cell" data-level="0"></span>
+              <span class="heatmap-cell" data-level="1"></span>
+              <span class="heatmap-cell" data-level="2"></span>
+              <span class="heatmap-cell" data-level="3"></span>
+              <span class="heatmap-cell" data-level="4"></span>
+              <span>More</span>
+            </div>
           </div>
         </div>
       </section>
@@ -230,7 +232,7 @@
               </label>
             </div>
             <label class="field">
-              <span>Notes<button type="button" class="voice-btn" data-voice-target="project-notes" title="Dictate">🎤</button></span>
+              <span>Notes<button type="button" class="voice-btn" data-voice-target="project-notes" title="Dictate" aria-label="Dictate"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button></span>
               <textarea id="project-notes" rows="3"></textarea>
             </label>
 
@@ -338,7 +340,7 @@
                 <input type="text" id="book-isbn" placeholder="optional" />
               </label>
               <label class="field">
-                <span>My summary / notes<button type="button" class="voice-btn" data-voice-target="book-notes" title="Dictate">🎤</button></span>
+                <span>My summary / notes<button type="button" class="voice-btn" data-voice-target="book-notes" title="Dictate" aria-label="Dictate"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button></span>
                 <textarea id="book-notes" rows="3"></textarea>
               </label>
 
@@ -444,7 +446,7 @@
         </div>
 
         <label class="field">
-          <span>Notes<button type="button" class="voice-btn" data-voice-target="task-notes" title="Dictate">🎤</button></span>
+          <span>Notes<button type="button" class="voice-btn" data-voice-target="task-notes" title="Dictate" aria-label="Dictate"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button></span>
           <textarea id="task-notes" rows="3" placeholder="Optional details…"></textarea>
         </label>
 
@@ -498,7 +500,7 @@
         </label>
 
         <label class="field">
-          <span>Quote<button type="button" class="voice-btn" data-voice-target="quote-text" title="Dictate">🎤</button></span>
+          <span>Quote<button type="button" class="voice-btn" data-voice-target="quote-text" title="Dictate" aria-label="Dictate"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></button></span>
           <textarea id="quote-text" rows="4" required></textarea>
         </label>
 

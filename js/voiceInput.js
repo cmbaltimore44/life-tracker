@@ -7,7 +7,9 @@ let activeButton = null;
 
 function setRecordingState(button, isRecording) {
   button.classList.toggle('recording', isRecording);
-  button.title = isRecording ? 'Stop dictation' : 'Dictate';
+  const label = isRecording ? 'Stop dictation' : 'Dictate';
+  button.title = label;
+  button.setAttribute('aria-label', label);
 }
 
 function resetState() {
