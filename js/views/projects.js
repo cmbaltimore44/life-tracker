@@ -2,6 +2,7 @@ import * as projectsApi from '../data/projects.js';
 import * as projectTasksApi from '../data/projectTasks.js';
 import { hashSegments } from '../hash.js';
 import { showError, showToast } from '../toast.js';
+import { dueStatus, formatDue } from '../taskDisplay.js';
 
 const STATUS_LABELS = { not_started: 'Not Started', in_progress: 'In Progress', done: 'Done' };
 
@@ -9,6 +10,7 @@ let userId = null;
 let projects = [];
 let checklist = [];
 let currentProjectId = null;
+let taskCounts = new Map();
 
 const el = {};
 
@@ -47,32 +49,88 @@ function renderList() {
   }
 
   projects.forEach((project) => {
-    const row = document.createElement('div');
-    row.className = 'project-row';
+    const card = document.createElement('div');
+    card.className = 'project-card';
+
+    const header = document.createElement('div');
+    header.className = 'project-card-header';
 
     const name = document.createElement('div');
-    name.className = 'project-row-name';
+    name.className = 'project-card-name';
     name.textContent = project.name;
-    row.appendChild(name);
+    header.appendChild(name);
 
     const status = document.createElement('span');
     status.className = 'project-row-status ' + project.status;
     status.textContent = STATUS_LABELS[project.status];
-    row.appendChild(status);
+    header.appendChild(status);
 
-    row.addEventListener('click', () => {
+    card.appendChild(header);
+
+    const counts = taskCounts.get(project.id);
+    if (counts && counts.total > 0) {
+      const progress = document.createElement('div');
+      progress.className = 'project-card-progress';
+
+      const bar = document.createElement('div');
+      bar.className = 'project-card-progress-bar';
+      const fill = document.createElement('div');
+      fill.className = 'project-card-progress-fill';
+      fill.style.width = Math.round((counts.done / counts.total) * 100) + '%';
+      bar.appendChild(fill);
+      progress.appendChild(bar);
+
+      const label = document.createElement('span');
+      label.className = 'project-card-progress-label';
+      label.textContent = `${counts.done}/${counts.total}`;
+      progress.appendChild(label);
+
+      card.appendChild(progress);
+    }
+
+    if (project.target_date) {
+      const status2 = dueStatus({ due_date: project.target_date, status: project.status });
+      const due = document.createElement('span');
+      due.className = 'due-badge' + (status2 ? ' ' + status2 : '');
+      due.textContent = (status2 === 'overdue' ? 'Overdue · ' : '') + formatDue(project.target_date);
+      card.appendChild(due);
+    }
+
+    card.addEventListener('click', () => {
       location.hash = '#/projects/' + project.id;
     });
 
-    el.projectsList.appendChild(row);
+    el.projectsList.appendChild(card);
+  });
+}
+
+function computeTaskCounts(rows) {
+  const map = new Map();
+  rows.forEach((row) => {
+    const counts = map.get(row.project_id) || { total: 0, done: 0 };
+    counts.total += 1;
+    if (row.done) counts.done += 1;
+    map.set(row.project_id, counts);
+  });
+  return map;
+}
+
+function syncTaskCounts() {
+  if (!currentProjectId) return;
+  taskCounts.set(currentProjectId, {
+    total: checklist.length,
+    done: checklist.filter((c) => c.done).length,
   });
 }
 
 function renderChecklist() {
+  syncTaskCounts();
   el.checklist.innerHTML = '';
   checklist.forEach((item) => {
     const row = document.createElement('li');
     row.className = 'routine-row' + (item.done ? ' completed' : '');
+    row.draggable = true;
+    row.dataset.id = item.id;
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -110,8 +168,28 @@ function renderChecklist() {
     });
     row.appendChild(remove);
 
+    row.addEventListener('dragstart', () => row.classList.add('dragging'));
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      persistChecklistOrder();
+    });
+
     el.checklist.appendChild(row);
   });
+}
+
+function getChecklistRowAfter(y) {
+  const rows = Array.from(el.checklist.querySelectorAll('.routine-row:not(.dragging)'));
+  return rows.find((row) => {
+    const rect = row.getBoundingClientRect();
+    return y - rect.top < rect.height / 2;
+  });
+}
+
+function persistChecklistOrder() {
+  const orderedIds = Array.from(el.checklist.querySelectorAll('.routine-row')).map((r) => r.dataset.id);
+  checklist.sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+  projectTasksApi.reorderProjectTasks(orderedIds).catch(showError);
 }
 
 async function openDetail(id) {
@@ -216,13 +294,24 @@ export async function initProjects(uid) {
   el.checklistForm.addEventListener('submit', handleAddChecklistItem);
   window.addEventListener('hashchange', renderRoute);
 
+  el.checklist.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const dragging = el.checklist.querySelector('.routine-row.dragging');
+    if (!dragging) return;
+    const afterElement = getChecklistRowAfter(e.clientY);
+    if (afterElement) el.checklist.insertBefore(dragging, afterElement);
+    else el.checklist.appendChild(dragging);
+  });
+
   await refreshProjects();
   renderRoute();
 }
 
 export async function refreshProjects() {
   try {
-    projects = await projectsApi.listProjects();
+    const [projectRows, taskRows] = await Promise.all([projectsApi.listProjects(), projectTasksApi.listTaskCounts()]);
+    projects = projectRows;
+    taskCounts = computeTaskCounts(taskRows);
   } catch (err) {
     showError(err);
     return;
