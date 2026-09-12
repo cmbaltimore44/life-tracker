@@ -4,7 +4,37 @@ import { hashSegments } from '../hash.js';
 import { showError, showToast, showConfirmToast } from '../toast.js';
 import { stopVoiceInput } from '../voiceInput.js';
 
-const STATUS_LABELS = { want_to_read: 'Want to Read', reading: 'Reading', finished: 'Finished', dnf: 'Did Not Finish' };
+const BOOK_GROUPS = [
+  { key: 'reading', label: 'Currently Reading', collapsible: false },
+  { key: 'want_to_read', label: 'Want to Read', collapsible: true },
+  { key: 'finished', label: 'Finished', collapsible: true },
+  { key: 'dnf', label: 'Did Not Finish', collapsible: true },
+];
+
+const COLLAPSED_GROUPS_KEY = 'kanban.library.collapsedGroups';
+
+function loadCollapsedGroups() {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_GROUPS_KEY);
+    if (raw === null) return new Set(['finished', 'dnf']);
+    return new Set(JSON.parse(raw));
+  } catch {
+    return new Set(['finished', 'dnf']);
+  }
+}
+
+let collapsedGroups = loadCollapsedGroups();
+
+function saveCollapsedGroups() {
+  localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify([...collapsedGroups]));
+}
+
+function toggleGroup(key) {
+  if (collapsedGroups.has(key)) collapsedGroups.delete(key);
+  else collapsedGroups.add(key);
+  saveCollapsedGroups();
+  renderBooksList();
+}
 
 let userId = null;
 let books = [];
@@ -80,43 +110,66 @@ function renderBooksList() {
     return;
   }
 
-  books.forEach((book) => {
-    const row = document.createElement('div');
-    row.className = 'book-row';
+  BOOK_GROUPS.forEach((group) => {
+    const groupBooks = books.filter((b) => b.status === group.key);
+    if (groupBooks.length === 0) return;
 
-    const cover = document.createElement('img');
-    cover.className = 'book-cover-thumb';
-    cover.src = book.cover_image_url || '';
-    cover.alt = '';
-    row.appendChild(cover);
+    const header = document.createElement('div');
+    header.className = 'checklist-header library-group-header';
 
-    const meta = document.createElement('div');
-    meta.className = 'book-row-meta';
+    const label = document.createElement('span');
+    label.className = 'meta-label';
+    label.textContent = `${group.label} (${groupBooks.length})`;
+    header.appendChild(label);
 
-    const title = document.createElement('div');
-    title.className = 'book-row-title';
-    title.textContent = book.title;
-    meta.appendChild(title);
+    const isCollapsed = group.collapsible && collapsedGroups.has(group.key);
 
-    if (book.author) {
-      const author = document.createElement('div');
-      author.className = 'book-row-author';
-      author.textContent = book.author;
-      meta.appendChild(author);
+    if (group.collapsible) {
+      header.classList.add('collapsible');
+      const caret = document.createElement('span');
+      caret.className = 'library-group-caret';
+      caret.textContent = isCollapsed ? '▸' : '▾';
+      header.appendChild(caret);
+      header.addEventListener('click', () => toggleGroup(group.key));
     }
 
-    row.appendChild(meta);
+    el.booksList.appendChild(header);
+    if (isCollapsed) return;
 
-    const status = document.createElement('span');
-    status.className = 'project-row-status';
-    status.textContent = STATUS_LABELS[book.status];
-    row.appendChild(status);
+    groupBooks.forEach((book) => {
+      const row = document.createElement('div');
+      row.className = 'book-row';
+      if (group.key === 'reading') row.classList.add('book-row-current');
 
-    row.addEventListener('click', () => {
-      location.hash = '#/library/books/' + book.id;
+      const cover = document.createElement('img');
+      cover.className = 'book-cover-thumb';
+      cover.src = book.cover_image_url || '';
+      cover.alt = '';
+      row.appendChild(cover);
+
+      const meta = document.createElement('div');
+      meta.className = 'book-row-meta';
+
+      const title = document.createElement('div');
+      title.className = 'book-row-title';
+      title.textContent = book.title;
+      meta.appendChild(title);
+
+      if (book.author) {
+        const author = document.createElement('div');
+        author.className = 'book-row-author';
+        author.textContent = book.author;
+        meta.appendChild(author);
+      }
+
+      row.appendChild(meta);
+
+      row.addEventListener('click', () => {
+        location.hash = '#/library/books/' + book.id;
+      });
+
+      el.booksList.appendChild(row);
     });
-
-    el.booksList.appendChild(row);
   });
 }
 

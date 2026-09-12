@@ -1236,6 +1236,24 @@ input, textarea, select, button {
   font-weight: 550;
 }
 
+.book-row-current {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 6px;
+}
+.book-row-current .book-row-title { color: var(--accent); }
+
+.library-group-header:first-child { margin-top: 0; }
+.library-group-header.collapsible {
+  cursor: pointer;
+  user-select: none;
+}
+.library-group-header.collapsible:hover .meta-label { color: var(--text); }
+
+.library-group-caret {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .project-row-status {
   font-family: var(--font-mono);
   font-size: 10.5px;
